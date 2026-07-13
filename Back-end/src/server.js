@@ -9,7 +9,7 @@ app.use(cors());
 const authRoutes = require("./routes/auth.route")
 app.use("/api/v1/auth", authRoutes)
 
-const PORT = 3000 || process.env.PORT
+const PORT =  process.env.PORT || 3000 
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
