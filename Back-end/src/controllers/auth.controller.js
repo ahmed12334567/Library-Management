@@ -23,8 +23,7 @@ async function verifyGoogleToken(accessToken) {
             payload: {
                 email: payload.email,
                 name: payload.name,
-                sub: payload.sub,
-                email_verified: email_verified
+                sub: payload.sub
             }
         };
     } catch (error) {
@@ -43,7 +42,7 @@ router.post("/register", async (req, res) => {
     const existingUser = await userModel.findUserByEmail(email)
     if (existingUser) {
         return res.status(409).json({
-            status: "fialed",
+            status: "failed",
             data: {
                 message: "Email already exists"
             }
@@ -93,12 +92,12 @@ router.post("/login", async (req, res) => {
 
         const existingUser = await userModel.findUserByEmail(email)
         if (!existingUser) {
-            return res.status(400).json({ status: "fialed", data: { message: "user not find" } })
+            return res.status(400).json({ status: "failed", data: { message: "user not find" } })
         }
 
         const comparePassword = await bcrypt.compare(password, existingUser.password)
         if (!comparePassword) {
-            return res.status(400).json({ status: "fialed", data: { message: "wrong password or email" } })
+            return res.status(400).json({ status: "failed", data: { message: "wrong password or email" } })
         }
 
 
@@ -132,6 +131,37 @@ router.post("/login", async (req, res) => {
         })
     }
 })
+
+router.get("/me", async (req, res) => {
+    try {
+        const email = req.userEmail
+
+        const existingUser = await userModel.findUserByEmail(email)
+
+        if (!existingUser) {
+            return res.status(404).json({ status: "failed", data: { message: "user not find" } })
+        }
+        return res.status(200).json({
+            status: "success",
+            data: {
+                user: {
+                    id: existingUser.id,
+                    username: existingUser.username,
+                    email: existingUser.email,
+                    role: existingUser.role
+                }
+            }
+        })
+    } catch (error) {
+        console.log("Erorr: ", error);
+        return res.status(500).json({
+            status: "error", data: {
+                message: "server error"
+            }
+        })
+    }
+})
+
 // TODO:
 // - Store Google sub in database.
 // - Verify email_verified from Google.
