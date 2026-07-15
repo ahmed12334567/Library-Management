@@ -76,8 +76,16 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         const firstSheetName = workbook.SheetNames[0];
         const workSheet = workbook.Sheets[firstSheetName];
-        const column = xlsx.utils.sheet_to_json(workSheet, { header: 1 });
         const jsonData = xlsx.utils.sheet_to_json(workSheet);
+        if (jsonData.length === 0) {
+            return res.status(409).json({
+                status: "fali",
+                data: {
+                    message: "file is empty"
+                }
+            })
+        }
+        const column = xlsx.utils.sheet_to_json(workSheet, { header: 1 });
         const columnName = column[0];
 
         const requiredColumns = [
@@ -97,14 +105,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
                 }
             })
         }
-        if (jsonData.length === 0) {
-            return res.status(409).json({
-                status: "fali",
-                data: {
-                    message: "file is empty"
-                }
-            })
-        }
+
 
         const allErrors = [];
         const validData = [];
@@ -141,28 +142,42 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
                 errors: allErrors
             });
         }
-        const categoryData = validData[0].categorie_id
-        const categorieModel = await bookModel.geCategorie(categoryData)
-        const categorieName = categorieModel ? categorieModel.name : "Unknown"
-        const book = await bookModel.createBook(...validData)
-        if (!book) {
-            return res.status(500).json({
-                status: "fali",
-                data: {
-                    message: "fali store in database"
-                }
-            })
+        const categoryIds = new Set();
+
+        for(const row of validData){
+           categoryIds.add(row.categorie_id) 
         }
-        return res.status(200).json({
+        const categorieArray = [...categoryIds]
+        const categories = await bookModel.categoryIds(categorieArray)
+        const categoryMap = new Map();
+        for(const category of categories){
+            categoryMap.set(category.id, category.name)
+        }
+        const books = [];
+
+        for(const book of validData){
+            const categorieName = categoryMap.get(book.categorie_id);
+
+            if(!categorieName){
+                return res.status(400).json({
+                    status: "fali",
+                    data: {
+                        message: `Category (${book.categorie_id}) does not exist`
+                    }
+                })
+            }
+            books.push({
+                ...book,
+                category_name: categorieName
+        })
+        }
+
+        await bookModel.createBooks(validData)
+        return res.status(201).json({
             success: true,
-            message: `Data successfully verified and ready to be saved for (${validData.length}) records`,
-            data:{
-                title: validData[0].title,
-                author: validData[0].author,
-                price: validData[0].price,
-                stock: validData[0].stock,
-                description: validData[0].description,
-                categorie: categorieName
+            message: `Data successfully verified and ready to be saved for (${books.length}) records`,
+            data: {
+                books: books
             }
         })
 

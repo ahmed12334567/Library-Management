@@ -17,6 +17,39 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows[0]
     },
+    createBooks: async (books) => {
+        const columns = [
+            "title",
+            "author",
+            "isbn",
+            "price",
+            "stock",
+            "description",
+            "categorie_id"
+        ];
+
+        const placeholders = [];
+        const values = [];
+
+        books.forEach((book, index) => {
+            const start = (index * columns.length) + 1;
+
+            placeholders.push(
+                `($${start}, $${start + 1}, $${start + 2}, $${start + 3}, $${start + 4}, $${start + 5}, $${start + 6})`
+            )
+
+            columns.forEach(column => {
+                values.push(book[column]);
+            });
+
+        });
+
+        const query = `INSERT INTO books(${columns.join(", ")})
+        VALUES ${placeholders.join(", ")}
+        RETURNING *`;
+        const result = await pool.query(query, values)
+        return result.rows
+    },
     getAllBooks: async () => {
         const query = `SELECT title, author, price, stock, description  FROM books`
         const result = await pool.query(query)
@@ -51,18 +84,24 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows[0]
     },
-    deleteBookById: async (id) =>{
+    deleteBookById: async (id) => {
         const query = `DELETE FROM books WHERE id = $1
         RETURNING *`
         const value = [id]
         const result = await pool.query(query, value)
         return result.rows[0]
     },
-    geCategorie: async (id) =>{
+    geCategorie: async (id) => {
         const query = `SELECT name FROM categories WHERE id = $1`
         const value = [id]
         const result = await pool.query(query, value)
         return result.rows[0]
+    },
+    categoryIds: async (ids) =>{
+        const query = `SELECT id, name FROM categories WHERE id = ANY($1)` 
+        const values = [ids]
+        const result = await pool.query(query, values)
+        return result.rows
     }
 }
 module.exports = book
