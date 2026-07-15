@@ -57,6 +57,12 @@ const book = {
         const value = [id]
         const result = await pool.query(query, value)
         return result.rows[0]
+    },
+    geCategorie: async (id) =>{
+        const query = `SELECT name FROM categories WHERE id = $1`
+        const value = [id]
+        const result = await pool.query(query, value)
+        return result.rows[0]
     }
 }
 module.exports = book

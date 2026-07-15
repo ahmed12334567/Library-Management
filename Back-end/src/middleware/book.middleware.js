@@ -1,12 +1,14 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, checkSchema } = require('express-validator');
 
 const validationAddBook = [
     body("title")
         .notEmpty()
+        .withMessage("invalid title")
         .isString()
         .withMessage("invalid title"),
     body("author")
         .notEmpty()
+        .withMessage("invalid auther name")
         .isString()
         .withMessage("invalid auther name"),
     body("isbn")
@@ -14,14 +16,15 @@ const validationAddBook = [
         .withMessage("invalid ISBN"),
     body("price")
         .notEmpty()
-        .isFloat({ gt: 0.0, max: 2.0 })
         .withMessage('invalid price number must be bigger than zero')
-        .toFloat(),
+        .isInt()
+        .withMessage('invalid price number must be Number'),
     body("stock")
         .notEmpty()
         .isInt({ gt: 0 })
         .withMessage('invalid stock number must be bigger than zero')
-        .toInt(),
+        .toInt()
+        .withMessage('invalid price number must be Number'),
     body("description")
         .notEmpty()
         .isString()
@@ -38,13 +41,54 @@ const validationAddBook = [
         if (!error.isEmpty()) {
             const firstError = error.array()[0];
             return res.status(400).json({
-                success: false,
-                message: firstError.msg,
-                data: { errors: error.array() }
+                status: "fali",
+                data: {
+                    message: firstError.msg
+                }
             });
         }
 
         next();
     }
 ]
-module.exports = {validationAddBook}
+
+const fileFilter = (req, file, cb) => {
+    if (
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || // .xlsx
+        file.mimetype === 'application/vnd.ms-excel' // .xls
+    ) {
+        cb(null, true);
+    } else {
+        cb(new Error('عذراً، يجب تحميل ملف Excel فقط!'), false);
+    }
+};
+
+const bookValidationRules = {
+    title: {
+        notEmpty: { errorMessage: "The title field is required" },
+        isString: { errorMessage: "The title must be text" }
+    },
+    author: {
+        notEmpty: { errorMessage: "The author name field is required" },
+        isString: { errorMessage: "The author name must be text" }
+    },
+    isbn:{
+        notEmpty: { errorMessage: "The ISBN field is required" }
+    },
+    price: {
+        notEmpty: { errorMessage: "The price field is required" },
+        isInt: { errorMessage: "The price must be number" }
+    },
+    stock:{
+        notEmpty: { errorMessage: "The stock field is required" },
+        isInt: { errorMessage: "The stock must be number" }
+    },
+    description: {
+        notEmpty: { errorMessage: "The description field is required" }
+    },
+    categorie_id: {
+        notEmpty: { errorMessage: "The categorie id field is required" },
+        isInt: { errorMessage: "The categorie id must be number" }
+    }
+}
+module.exports = { validationAddBook, fileFilter, bookValidationRules }

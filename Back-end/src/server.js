@@ -9,6 +9,9 @@ app.use(cors());
 const authRoutes = require("./routes/auth.route")
 app.use("/api/v1/auth", authRoutes)
 
+const bookRoutes = require("./routes/book.route")
+app.use("/api/v1/book", bookRoutes)
+
 const PORT =  process.env.PORT || 3000 
 
 app.listen(PORT, () => {
