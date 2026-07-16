@@ -28,7 +28,7 @@ router.post("/add-book", async (req, res) => {
         }
 
         const book = await bookModel.createBook(newBook)
-        const categoryData = await bookModel.geCategorie(categorieId)
+        const categoryData = await bookModel.getCategorie(categorieId)
         const categorieName = categoryData ? categoryData.name : "Unknown"
 
         return res.status(201).json({
@@ -46,7 +46,7 @@ router.post("/add-book", async (req, res) => {
     } catch (error) {
         if (error.code === '23505' && error.detail.includes('isbn')) {
             return res.status(409).json({
-                status: "fali",
+                status: "fail",
                 data: {
                     message: "The ISBN is registered in the database"
                 }
@@ -54,7 +54,7 @@ router.post("/add-book", async (req, res) => {
         }
         console.log("Error: ", error);
         return res.status(500).json({
-            status: "fali", data: {
+            status: "fail", data: {
                 message: "Server Error"
             }
         })
@@ -67,7 +67,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         const file = req.file
         if (!file) {
             return res.status(409).json({
-                status: "fali",
+                status: "fail",
                 data: {
                     message: "No file was received"
                 }
@@ -79,7 +79,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         const jsonData = xlsx.utils.sheet_to_json(workSheet);
         if (jsonData.length === 0) {
             return res.status(409).json({
-                status: "fali",
+                status: "fail",
                 data: {
                     message: "file is empty"
                 }
@@ -99,7 +99,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         const valid = requiredColumns.every(col => columnName.includes(col))
         if (!valid) {
             return res.status(409).json({
-                status: "fali",
+                status: "fail",
                 data: {
                     message: "worng columns name"
                 }
@@ -144,23 +144,23 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         }
         const categoryIds = new Set();
 
-        for(const row of validData){
-           categoryIds.add(row.categorie_id) 
+        for (const row of validData) {
+            categoryIds.add(row.categorie_id)
         }
         const categorieArray = [...categoryIds]
         const categories = await bookModel.categoryIds(categorieArray)
         const categoryMap = new Map();
-        for(const category of categories){
+        for (const category of categories) {
             categoryMap.set(category.id, category.name)
         }
         const books = [];
 
-        for(const book of validData){
+        for (const book of validData) {
             const categorieName = categoryMap.get(book.categorie_id);
 
-            if(!categorieName){
+            if (!categorieName) {
                 return res.status(400).json({
-                    status: "fali",
+                    status: "fail",
                     data: {
                         message: `Category (${book.categorie_id}) does not exist`
                     }
@@ -169,7 +169,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
             books.push({
                 ...book,
                 category_name: categorieName
-        })
+            })
         }
 
         await bookModel.createBooks(validData)
@@ -184,7 +184,7 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
     } catch (error) {
         if (error.code === '23505' && error.detail.includes('isbn')) {
             return res.status(409).json({
-                status: "fali",
+                status: "fail",
                 data: {
                     message: "The ISBN is registered in the database"
                 }
@@ -192,10 +192,92 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
         }
         console.log("Error: ", error);
         return res.status(500).json({
-            status: "fali", data: {
+            status: "fail", data: {
                 message: "Server Error"
             }
         })
+    }
+})
+
+router.patch("/updata-book/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id)
+    if (!Number(bookId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "book id is requried"
+            }
+        })
+    }
+    const allowedFields = [
+        'title',
+        'author',
+        'isbn',
+        'price',
+        'stock',
+        'description',
+        'categorie_id'];
+    const data = Object.keys(req.body)
+    const valid = data.every(col => allowedFields.includes(col))
+    if(!valid){
+        return res.status(400).json({
+            status: "fail",
+            data:{
+                message: "Enter the fields correctly(title, author, isbn, price, stock, description, categorie_id)"
+            }
+        })
+    }
+    const validData = req.body
+    const updateData = {}
+    for (const book in validData) {
+        if (validData[book] !== undefined && validData[book] !== null) {
+            updateData[book] = validData[book]
+        }
+    }
+    updateData["id"] = bookId
+    if (Object.keys(updateData).length <= 1) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Enter at least one field"
+            }
+        })
+    }
+
+    try {
+        const updateBook = await bookModel.updateBookById(updateData);
+        if (!updateBook) {
+            return res.status(404).json({
+                status: "fail",
+                data: {
+                    message: "Book not found Please check the ID"
+                }
+            });
+        }
+        const categorie_id = updateBook.categorie_id
+        const categoryData = await bookModel.getCategorie(categorie_id)
+        const categorieName = categoryData ? categoryData.name : "Unknown"
+        
+        return res.status(200).json({
+            status: "success",
+            data: {
+                updateBook: {
+                    title: updateBook.title,
+                    author: updateBook.author,
+                    price: updateBook.price,
+                    stock: updateBook.stock,
+                    description: updateBook.description,
+                    categorie: categorieName
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error("Error updating book:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal server error"
+        });
     }
 })
 

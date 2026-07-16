@@ -68,19 +68,19 @@ const book = {
         return result.rows
     },
     updateBookById: async (data) => {
-        const query = `UPDATE books SET title = $1 , author = $2, isbn = $3, 
-     price = $4, stock = $5, description = $6, categorie_id = $7 WHERE id = $8
-     RETURNING *`
-        const values = [
-            data.title,
-            data.author,
-            data.isbn,
-            data.price,
-            data.stock,
-            data.description,
-            data.categorie_id,
-            data.id
-        ]
+        const { id, ...fieldsToUpdate } = data
+        const keys = Object.keys(fieldsToUpdate)
+        
+        if (keys.length === 0) {
+            throw new Error("No fields provided to update");
+        }
+        const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ")
+        
+        const query = `UPDATE books SET ${setClause}
+        WHERE id = $${keys.length + 1}
+        RETURNING *`
+        const values = [...Object.values(fieldsToUpdate), id];
+        
         const result = await pool.query(query, values)
         return result.rows[0]
     },
@@ -91,14 +91,14 @@ const book = {
         const result = await pool.query(query, value)
         return result.rows[0]
     },
-    geCategorie: async (id) => {
+    getCategorie: async (id) => {
         const query = `SELECT name FROM categories WHERE id = $1`
         const value = [id]
         const result = await pool.query(query, value)
         return result.rows[0]
     },
-    categoryIds: async (ids) =>{
-        const query = `SELECT id, name FROM categories WHERE id = ANY($1)` 
+    categoryIds: async (ids) => {
+        const query = `SELECT id, name FROM categories WHERE id = ANY($1)`
         const values = [ids]
         const result = await pool.query(query, values)
         return result.rows
