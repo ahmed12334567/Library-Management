@@ -61,7 +61,8 @@ router.post("/register", asyncHandler(async (req, res) => {
     const token = jwt.sign(
         {
             id: user.id,
-            email: user.email
+            email: user.email,
+            role: user.role
         },
         JWT_SECRET,
         {
@@ -100,7 +101,8 @@ router.post("/login", asyncHandler(async (req, res) => {
     const token = jwt.sign(
         {
             id: existingUser.id,
-            email: existingUser.email
+            email: existingUser.email,
+            role: existingUser.role
         },
         JWT_SECRET,
         {
