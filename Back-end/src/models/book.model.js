@@ -70,10 +70,7 @@ const book = {
     updateBookById: async (data) => {
         const { id, ...fieldsToUpdate } = data
         const keys = Object.keys(fieldsToUpdate)
-        
-        if (keys.length === 0) {
-            throw new Error("No fields provided to update");
-        }
+    
         const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ")
         
         const query = `UPDATE books SET ${setClause}
