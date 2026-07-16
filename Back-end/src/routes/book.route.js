@@ -3,8 +3,9 @@ const router = express.Router()
 const {validationAddBook} = require("../middleware/book.middleware")
 const bookController = require("../controllers/book.controller")
 
-router.post("/add-book", validationAddBook , bookController)
-router.post("/import-books-file" , bookController)
-router.patch("/updata-book/:id" , bookController)
+router.post("/", validationAddBook , bookController)
+router.post("/import-file" , bookController)
+router.patch("/:id" , bookController)
+router.delete("/:id" , bookController)
 
 module.exports = router

@@ -7,7 +7,7 @@ const xlsx = require("xlsx")
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 
-router.post("/add-book", async (req, res) => {
+router.post("/", async (req, res) => {
     try {
         const title = req.body?.title?.trim()
         const author = req.body?.author?.trim()
@@ -62,7 +62,7 @@ router.post("/add-book", async (req, res) => {
     }
 })
 
-router.post("/import-books-file", upload.single("bookFile"), async (req, res) => {
+router.post("/import-file", upload.single("bookFile"), async (req, res) => {
     try {
         const file = req.file
         if (!file) {
@@ -199,13 +199,13 @@ router.post("/import-books-file", upload.single("bookFile"), async (req, res) =>
     }
 })
 
-router.patch("/updata-book/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
     const bookId = parseInt(req.params.id)
-    if (!Number(bookId)) {
+    if (!Number.isFinite(bookId)) {
         return res.status(400).json({
             status: "fail",
             data: {
-                message: "book id is requried"
+                message: "Invalid book ID"
             }
         })
     }
@@ -219,10 +219,10 @@ router.patch("/updata-book/:id", async (req, res) => {
         'categorie_id'];
     const data = Object.keys(req.body)
     const valid = data.every(col => allowedFields.includes(col))
-    if(!valid){
+    if (!valid) {
         return res.status(400).json({
             status: "fail",
-            data:{
+            data: {
                 message: "Enter the fields correctly(title, author, isbn, price, stock, description, categorie_id)"
             }
         })
@@ -257,7 +257,7 @@ router.patch("/updata-book/:id", async (req, res) => {
         const categorie_id = updateBook.categorie_id
         const categoryData = await bookModel.getCategorie(categorie_id)
         const categorieName = categoryData ? categoryData.name : "Unknown"
-        
+
         return res.status(200).json({
             status: "success",
             data: {
@@ -271,13 +271,52 @@ router.patch("/updata-book/:id", async (req, res) => {
                 }
             }
         });
-        
+
     } catch (error) {
         console.error("Error updating book:", error);
         return res.status(500).json({
             status: "error",
-            message: "Internal server error"
+            data: {
+                message: "Internal server error"
+            }
         });
+    }
+})
+
+router.delete("/:id", async (req, res) => {
+    try {
+        const bookId = parseInt(req.params.id)
+        if (!Number.isFinite(bookId)) {
+            return res.status(400).json({
+                status: "fail",
+                data: {
+                    message: "Invalid book ID"
+                }
+            })
+        }
+        const deleteBook = await bookModel.deleteBookById(bookId)
+        if (!deleteBook) {
+            return res.status(404).json({
+                status: "fail",
+                data: {
+                    message: "Book not found Please check the ID"
+                }
+            })
+        }
+        return res.status(200).json({
+            status: "success",
+            data:{
+                message: "Book deleted successfully"
+            }
+        })
+    } catch (error) {
+        console.error("Error deleting book:", error);
+        return res.status(500).json({
+            status: "fail",
+            data: {
+                message: "Internal server error"
+            }
+        })
     }
 })
 
