@@ -12,8 +12,10 @@ app.use("/api/v1/auth", authRoutes)
 const bookRoutes = require("./routes/book.route")
 app.use("/api/v1/books", bookRoutes)
 
-const PORT =  process.env.PORT || 3000 
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+const { handelError } = require("./middleware/error.middleware")
+app.use(handelError)
