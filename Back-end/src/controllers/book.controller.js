@@ -1,9 +1,9 @@
-const express = require("express")
-const router = express.Router()
-const bookModel = require("../models/book.model")
-const { fileFilter, bookValidationRules } = require("../middleware/book.middleware")
-const multer = require("multer")
-const xlsx = require("xlsx")
+const express = require("express");
+const router = express.Router();
+const bookModel = require("../models/book.model");
+const { fileFilter, bookValidationRules } = require("../middleware/book.middleware");
+const multer = require("multer");
+const xlsx = require("xlsx");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 
