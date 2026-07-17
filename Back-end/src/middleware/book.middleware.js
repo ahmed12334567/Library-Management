@@ -1,4 +1,4 @@
-const { body, validationResult} = require('express-validator');
+const { body, validationResult } = require('express-validator');
 
 const validationAddBook = [
     body("title")
@@ -72,14 +72,14 @@ const bookValidationRules = {
         notEmpty: { errorMessage: "The author name field is required" },
         isString: { errorMessage: "The author name must be text" }
     },
-    isbn:{
+    isbn: {
         notEmpty: { errorMessage: "The ISBN field is required" }
     },
     price: {
         notEmpty: { errorMessage: "The price field is required" },
         isInt: { errorMessage: "The price must be number" }
     },
-    stock:{
+    stock: {
         notEmpty: { errorMessage: "The stock field is required" },
         isInt: { errorMessage: "The stock must be number" }
     },

@@ -14,12 +14,12 @@ const user = {
         const result = await pool.query(query, values)
         return result.rows[0]
     },
-    findUserByEmail: async (email) =>{
+    findUserByEmail: async (email) => {
         const query = `SELECT * FROM users WHERE email = $1`
         const value = [email]
         const result = await pool.query(query, value)
         return result.rows[0]
     }
-} 
+}
 
 module.exports = user

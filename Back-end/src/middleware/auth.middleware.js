@@ -18,7 +18,7 @@ const validtionReg = [
         .if((value, { req }) => req.body?.isGoogleUser === true || req.body?.isGoogleUser === "true")
         .notEmpty()
         .withMessage("Google Token Required"),
-        
+
     (req, res, next) => {
         const error = validationResult(req);
 
@@ -78,4 +78,32 @@ const verifyUser =
             next();
         });
     }
-module.exports = { validtionReg, validtionLogin, verifyUser }
+
+const verifyAdmin =
+    function verifyAdmin(req, res, next) {
+        const authHeader = req.headers["authorization"];
+        const token = authHeader && authHeader.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).json({ success: false, message: "Token is required" });
+        }
+
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ success: false, message: "Invalid or expired token" });
+            }
+            if (decoded.role !== "admin") {
+                return res.status(401).json({
+                    status: "fail",
+                    data: {
+                        message: "Unauthorized"
+                    }
+                })
+            }
+            req.adminEmail = decoded.email;
+            req.role = decoded.role
+            req.adminId = decoded.id;
+            next();
+        });
+    }
+module.exports = { validtionReg, validtionLogin, verifyUser, verifyAdmin }

@@ -70,14 +70,14 @@ const book = {
     updateBookById: async (data) => {
         const { id, ...fieldsToUpdate } = data
         const keys = Object.keys(fieldsToUpdate)
-    
+
         const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ")
-        
+
         const query = `UPDATE books SET ${setClause}
         WHERE id = $${keys.length + 1}
         RETURNING *`
         const values = [...Object.values(fieldsToUpdate), id];
-        
+
         const result = await pool.query(query, values)
         return result.rows[0]
     },
@@ -99,6 +99,13 @@ const book = {
         const values = [ids]
         const result = await pool.query(query, values)
         return result.rows
+    },
+    updateStock: async(bookId) =>{
+        const query = `UPDATE books SET stock = stock - 1
+        WHERE id = $1 AND stock > 0`;
+        const value = [bookId];
+        const result = await pool.query(query, value);
+        return result.rowCount > 0;
     }
 }
 module.exports = book

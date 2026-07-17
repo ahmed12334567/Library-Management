@@ -1,4 +1,4 @@
-const handelError = function(err, req, res, next){
+const handelError = function (err, req, res, next) {
     // if(err.code = "23505"){
     //     return res.status(400).json({
     //         status: "fail",
@@ -10,11 +10,11 @@ const handelError = function(err, req, res, next){
     console.error("server error: ", err);
     return res.status(500).json({
         status: "fail",
-        data:{
+        data: {
             message: "Internal server error"
         }
     })
-    
+
 }
 const asyncHandler = (fn) => {
     return (req, res, next) => {
@@ -22,4 +22,4 @@ const asyncHandler = (fn) => {
     }
 }
 
-module.exports = {handelError, asyncHandler}
+module.exports = { handelError, asyncHandler }
