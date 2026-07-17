@@ -1,6 +1,29 @@
 const pool = require("../config/db")
 
 const borrowBook = {
+    createBorrowBookReq: async(data) =>{
+        const query = `INSERT INTO borrow_requset(user_id, book_id)
+        VALUES ($1, $2)
+        RETURNING *`
+        const values = [data.userId, data.bookId]
+        const result = await pool.query(query, values)
+        return result.rows[0]
+    },
+    checkUserHaveReq: async (data) =>{
+        const query = `SELECT * FROM borrow_requset WHERE 
+        user_id = $1 AND book_id = $2 AND status = 'Pending' `
+        const values = [data.userId, data.bookId]
+        const result = await pool.query(query, values)
+        return result.rows[0]
+    },
+    deleteBorrowBookReq: async (data) =>{
+        const query = `DELETE FROM borrow_requset 
+        WHERE book_id = $1 AND user_id = $2 AND status = 'Pending'`
+        const values = [data.bookId, data.userId]
+        const result = await pool.query(query, values)
+        return result.rows[0]
+    },
+
     createBorrowBook: async (data) => {
         const query = `INSERT INTO borrowedbooks(user_id, book_id, return_date)
         VALUES ($1, $2, $3)

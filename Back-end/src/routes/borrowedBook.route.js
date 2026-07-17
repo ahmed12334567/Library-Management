@@ -5,5 +5,6 @@ const borrowBookController = require("../controllers/borrowedBook.controller")
 const {verifyUser} = require("../middleware/auth.middleware")
 
 router.post("/", verifyUser, createBorrowBookMiddleware, borrowBookController)
+router.delete("/", verifyUser, createBorrowBookMiddleware, borrowBookController)
 
 module.exports = router

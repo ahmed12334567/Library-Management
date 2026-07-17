@@ -5,8 +5,6 @@ const createBorrowBook = [
         .notEmpty()
         .isInt()
         .withMessage("enter valid book id"),
-    body("return_date")
-        .notEmpty(),
     (req, res, next) => {
         const error = validationResult(req);
 
