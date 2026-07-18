@@ -59,7 +59,8 @@ const fileFilter = (req, file, cb) => {
     ) {
         cb(null, true);
     } else {
-        cb(new Error('عذراً، يجب تحميل ملف Excel فقط!'), false);
+        req.fileValidationError = 'عذراً، يجب تحميل ملف Excel فقط!';
+        cb(null, false);
     }
 };
 

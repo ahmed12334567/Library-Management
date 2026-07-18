@@ -88,6 +88,15 @@ const book = {
         const result = await pool.query(query, value)
         return result.rows[0]
     },
+    getBookByIsbn: async (isbn) => {
+        const query = `SELECT * FROM books
+        WHERE isbn = $1::text`
+        const value = [isbn]
+        const result = await pool.query(query, value)
+        console.log(result.rows[0]);
+
+        return result.rows[0]
+    },
     getCategorie: async (id) => {
         const query = `SELECT name FROM categories WHERE id = $1`
         const value = [id]
@@ -100,7 +109,7 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows
     },
-    updateStock: async(bookId) =>{
+    updateStock: async (bookId) => {
         const query = `UPDATE books SET stock = stock - 1
         WHERE id = $1 AND stock > 0`;
         const value = [bookId];

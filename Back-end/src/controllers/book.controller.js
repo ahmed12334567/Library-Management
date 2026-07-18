@@ -46,6 +46,14 @@ router.post("/", asyncHandler(async (req, res) => {
 }))
 
 router.post("/import-file", upload.single("bookFile"), asyncHandler(async (req, res) => {
+        if(req.fileValidationError){
+            return res.status(400).json({
+                status: "fail",
+                data:{
+                   message: req.fileValidationError
+                }
+            })
+        }
     const file = req.file
     if (!file) {
         return res.status(409).json({
