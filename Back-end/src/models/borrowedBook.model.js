@@ -29,7 +29,7 @@ const borrowBook = {
         RETURNING *`
         const vlaue = [data.status, data.id]
         const result = await pool.query(query, vlaue)
-        
+
         return result.rows[0];
     },
     deleteBorrowBookReq: async (data) => {
@@ -42,12 +42,17 @@ const borrowBook = {
     getAllBorrowBookReq: async () => {
         const query = `SELECT  borrow_requset.id AS requestid, users.id AS userid, 
         users.username, users.email, books.id AS bookid, books.title, books.stock,
-        borrow_requset.status, borrow_requset.created_at  FROM borrow_requset JOIN users ON
-        borrow_requset.user_id = users.id JOIN books ON
+        borrow_requset.status, borrow_requset.created_at  FROM borrow_requset 
+        JOIN users ON
+        borrow_requset.user_id = users.id 
+        JOIN books ON
         borrow_requset.book_id = books.id
         WHERE borrow_requset.status = 'Pending' ORDER BY requestid
         `
-        const result = await pool.query(query)
+
+        console.time('query');
+        const result = await pool.query(query);
+        console.timeEnd('query');
         return result.rows
     },
     createBorrowBook: async (data) => {
@@ -80,16 +85,20 @@ const borrowBook = {
     getBorrowBookDetails: async () => {
         const query = `SELECT 
                         borrowedbooks.id AS borrow_id, 
+                        users.id AS userid,
                         users.username, 
                         users.email, 
+                        books.id AS bookid,
                         books.title AS book_title, 
+                        books.stock AS stock,
                         borrowedbooks.borrow_date, 
                         borrowedbooks.return_date, 
                         borrowedbooks.status
                     FROM borrowedbooks 
                     JOIN users ON borrowedbooks.user_id = users.id
-                    JOIN books ON borrowedbooks.book_id = books.id;`
-        const result = await pool.query(query)
+                    JOIN books ON borrowedbooks.book_id = books.id
+                    ORDER BY borrow_date DESC`
+        const result = await pool.query(query);
         return result.rows
     }
 

@@ -6,6 +6,7 @@ const { verifyUser, verifyAdmin } = require("../middleware/auth.middleware")
 
 router.post("/", verifyUser, createBorrowBookMiddleware, borrowBookController)
 router.get("/get-requsets", verifyAdmin, borrowBookController)
+router.get("/borrowed", verifyAdmin, borrowBookController)
 router.patch("/:id/Approved", verifyAdmin, borrowBookController) 
 router.patch("/:id/Reject", verifyAdmin, borrowBookController) 
 router.delete("/", verifyUser, createBorrowBookMiddleware, borrowBookController)

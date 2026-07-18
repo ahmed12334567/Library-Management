@@ -1,11 +1,11 @@
 const express = require("express")
 const cors = require("cors")
 require("dotenv").config()
-
 const app = express()
+
 app.use(express.json())
 app.use(cors());
-
+app.use(httpLogger)
 const authRoutes = require("./routes/auth.route")
 app.use("/api/v1/auth", authRoutes)
 
@@ -17,7 +17,8 @@ app.use("/api/v1/borrow", borrowBookRoute)
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("server runner on ", PORT);
+  
 });
-const { handelError } = require("./middleware/error.middleware")
-app.use(handelError)
+const { handleError } = require("./middleware/error.middleware")
+app.use(handleError)

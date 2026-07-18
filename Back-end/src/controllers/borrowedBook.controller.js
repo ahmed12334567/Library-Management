@@ -3,6 +3,7 @@ const router = express.Router();
 const borroweBookModel = require("../models/borrowedBook.model")
 const bookModel = require("../models/book.model")
 const { asyncHandler } = require("../middleware/error.middleware")
+const formateDate = require("../Utility/formateDate")
 
 router.post("/", asyncHandler(async (req, res) => {
     const userId = req.userId
@@ -75,19 +76,8 @@ router.delete("/", asyncHandler(async (req, res) => {
 
 router.get("/get-requsets", asyncHandler(async (req, res) => {
     const requests = await borroweBookModel.getAllBorrowBookReq()
-    const optionsEn = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    };
     const formattedRequests = requests.map(row => {
-        const dateObj = new Date(row.created_at);
-        const formattedDate = !isNaN(dateObj.getTime())
-            ? dateObj.toLocaleString('en-US', optionsEn)
-            : "Invalid Date";
+        const formattedDate = formateDate(row.created_at)
         return {
             borrowRusetsID: row.requestid,
             user_id: row.userid,
@@ -134,9 +124,10 @@ router.patch("/:id/Approved", asyncHandler(async (req, res) => {
         id: reqId
     }
     const changeStauts = await borroweBookModel.updateBorrowBookReq(newStatus)
+    const decraceStock = await bookModel.updateStock(book_id)
 
 
-    if (!changeStauts) {
+    if (!changeStauts || !decraceStock) {
         return res.status(400).json({
             status: "fail",
             data: {
@@ -196,6 +187,33 @@ router.patch("/:id/Reject", asyncHandler(async (req, res) => {
         status: "success",
         data: {
             message: "The request was successfully rejected"
+        }
+    })
+}))
+
+router.get("/borrowed", asyncHandler(async (req, res) => {
+    const borrowBook = await borroweBookModel.getBorrowBookDetails()
+    const formattedBorrowed = borrowBook.map(row => {
+        const formattedBorrowedDate = formateDate(row.borrow_date)
+        const formattedReuturnDate = formateDate(row.return_date)
+        return {
+            borrowBookId: row.borrow_id,
+            user_id: row.userid,
+            username: row.username,
+            email: row.email,
+            book_id: row.bookid,
+            title: row.book_title,
+            stock: row.stock,
+            status: row.status,
+            borrow_date: formattedBorrowedDate,
+            return_date: formattedReuturnDate,
+
+        };
+    })
+    return res.status(200).json({
+        status: "success",
+        data: {
+            borrow_books: formattedBorrowed
         }
     })
 }))
