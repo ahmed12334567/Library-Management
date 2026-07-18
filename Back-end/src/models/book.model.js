@@ -50,16 +50,24 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows
     },
-    getAllBooks: async () => {
-        const query = `SELECT title, author, price, stock, description  FROM books`
-        const result = await pool.query(query)
-        return result.rows[0]
+    getBooksFilters: async (whereClause, values) => {
+        let query = `
+        SELECT  id, title, author, price, stock, description, created_at
+        FROM books 
+    `;
+
+        if (whereClause) {
+            query += ` WHERE ${whereClause}`;
+        }
+        query += ` ORDER BY created_at DESC`
+        const result = await pool.query(query, values);
+        return result.rows;
     },
     getBookById: async (id) => {
-        const query = `SELECT title, author, price, stock, description FROM books WHERE id = $1`
+        const query = `SELECT title, author, price, stock, description, created_at FROM books WHERE id = $1`
         const value = [id]
         const result = await pool.query(query, value)
-        return result.rows
+        return result.rows[0]
     },
     getBookByCategorie: async (categorie_id) => {
         const query = `SELECT title, author, price, stock, description FROM books WHERE categorie_id = $1`
@@ -90,7 +98,7 @@ const book = {
     },
     getBookByIsbn: async (isbn) => {
         const query = `SELECT * FROM books
-        WHERE isbn = $1::text`
+        WHERE isbn = $1`
         const value = [isbn]
         const result = await pool.query(query, value)
         console.log(result.rows[0]);

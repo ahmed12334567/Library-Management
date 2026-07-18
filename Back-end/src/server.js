@@ -5,7 +5,6 @@ const app = express()
 
 app.use(express.json())
 app.use(cors());
-app.use(httpLogger)
 const authRoutes = require("./routes/auth.route")
 app.use("/api/v1/auth", authRoutes)
 

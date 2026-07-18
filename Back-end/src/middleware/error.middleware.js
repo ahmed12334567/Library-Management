@@ -1,10 +1,9 @@
 require("dotenv").config()
-const logger = require("../logger")
 const handleError = function (err, req, res, next) {
     if (process.env.NODE_ENV === 'production') {
         console.error("server error:", err.message);
     } else {
-        logger.error({ err }, 'Server error occurred')
+        console.error("server error:", err.message);
     }
 
     if (err.code === '23505') {

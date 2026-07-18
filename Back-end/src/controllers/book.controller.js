@@ -7,6 +7,85 @@ const xlsx = require("xlsx");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 const { asyncHandler } = require("../middleware/error.middleware")
+const formateDate = require("../Utility/formateDate");
+
+router.get("/", asyncHandler(async (req, res) => {
+    const filters = {
+        categorie_id: req.query.categoryId,
+        author: req.query.author
+    };
+    const keys = Object.entries(filters)
+    const filterArray = keys.filter(el => el[1] !== undefined)
+    const whereClause = filterArray.map((element, index) => {
+        return ` ${element[0]} = $${index + 1}`
+    }).join(" AND ")
+    const values = filterArray.map(element => {
+        return element[1]
+    })
+    const books = await bookModel.getBooksFilters(whereClause, values)
+    if (books.length === 0) {
+        return res.status(404).json({
+            status: "fail",
+            data: {
+                message: "Book not found Please check the ID"
+            }
+        })
+    }
+    const fromatedData = books.map(row => {
+        const formatDate = formateDate(row.created_at)
+        return {
+            id: row.id,
+            title: row.title,
+            author: row.author,
+            price: row.price,
+            stock: row.stock,
+            description: row.description,
+            created_at: formatDate
+        }
+    })
+    return res.status(200).json({
+        status: "success",
+        data: {
+            books: fromatedData
+        }
+    })
+}))
+
+router.get("/:id", asyncHandler(async (req, res) => {
+    const bookId = parseInt(req.params.id)
+    if (!Number.isFinite(bookId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid book ID"
+            }
+        })
+    }
+    const book = await bookModel.getBookById(bookId)
+    if (!book) {
+        return res.status(404).json({
+            status: "fail",
+            data: {
+                message: "Book not found Please check the ID"
+            }
+        })
+    }
+    const created_at = book.created_at
+    const formateDateBook = formateDate(created_at)
+    return res.status(200).json({
+        status: "success",
+        data: {
+            title: book.title,
+            author: book.author,
+            price: book.price,
+            stock: book.stock,
+            description: book.description,
+            created_at: formateDateBook
+        }
+    })
+}))
+
+
 
 router.post("/", asyncHandler(async (req, res) => {
     const title = req.body?.title?.trim()
@@ -46,14 +125,14 @@ router.post("/", asyncHandler(async (req, res) => {
 }))
 
 router.post("/import-file", upload.single("bookFile"), asyncHandler(async (req, res) => {
-        if(req.fileValidationError){
-            return res.status(400).json({
-                status: "fail",
-                data:{
-                   message: req.fileValidationError
-                }
-            })
-        }
+    if (req.fileValidationError) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: req.fileValidationError
+            }
+        })
+    }
     const file = req.file
     if (!file) {
         return res.status(409).json({

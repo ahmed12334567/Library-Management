@@ -2,11 +2,13 @@ const { body, validationResult } = require('express-validator');
 
 const validationAddBook = [
     body("title")
+        .trim()
         .notEmpty()
         .withMessage("invalid title")
         .isString()
         .withMessage("invalid title"),
     body("author")
+        .trim()
         .notEmpty()
         .withMessage("invalid auther name")
         .isString()
@@ -26,6 +28,7 @@ const validationAddBook = [
         .toInt()
         .withMessage('invalid price number must be Number'),
     body("description")
+        .trim()
         .notEmpty()
         .isString()
         .isLength({ min: 20 })
