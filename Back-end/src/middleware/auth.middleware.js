@@ -73,6 +73,14 @@ const verifyUser =
             if (err) {
                 return res.status(401).json({ success: false, message: "Invalid or expired token" });
             }
+            if (decoded.role !== "user") {
+                return res.status(401).json({
+                    status: "fail",
+                    data: {
+                        message: "Unauthorized"
+                    }
+                })
+            }
             req.userEmail = decoded.email;
             req.userId = decoded.id;
             next();

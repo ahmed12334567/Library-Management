@@ -1,10 +1,6 @@
-require("dotenv").config()
 const handleError = function (err, req, res, next) {
-    if (process.env.NODE_ENV === 'production') {
         console.error("server error:", err.message);
-    } else {
-        console.error("server error:", err.message);
-    }
+   
 
     if (err.code === '23505') {
         let message = "This data already exists";
@@ -57,7 +53,7 @@ const handleError = function (err, req, res, next) {
         status: "fail",
         data: {
             message: "Internal server error",
-            ...(process.env.NODE_ENV !== 'production' && { debug: err.message })
+            ...( { debug: err.message })
         }
     });
 };

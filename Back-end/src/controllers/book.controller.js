@@ -31,7 +31,7 @@ router.get("/", asyncHandler(async (req, res) => {
             }
         })
     }
-    const fromatedData = books.map(row => {
+    const fromatedData = books.map(row => { 
         const formatDate = formateDate(row.created_at)
         return {
             id: row.id,
@@ -40,6 +40,7 @@ router.get("/", asyncHandler(async (req, res) => {
             price: row.price,
             stock: row.stock,
             description: row.description,
+            categorie: row.categorie,
             created_at: formatDate
         }
     })
@@ -107,8 +108,6 @@ router.post("/", asyncHandler(async (req, res) => {
     }
 
     const book = await bookModel.createBook(newBook)
-    const categoryData = await bookModel.getCategorie(categorieId)
-    const categorieName = categoryData ? categoryData.name : "Unknown"
 
     return res.status(201).json({
         status: "success", data: {
@@ -118,7 +117,7 @@ router.post("/", asyncHandler(async (req, res) => {
                 price: book.price,
                 stock: book.stock,
                 description: book.description,
-                categorie: categorieName
+                categorie: book.category_name
             }
         }
     })

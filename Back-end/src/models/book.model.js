@@ -2,9 +2,16 @@ const pool = require("../config/db")
 
 const book = {
     createBook: async (data) => {
-        const query = `INSERT INTO books(title, author, isbn, price, stock, description, categorie_id)
-        VALUES($1,$2,$3,$4,$5,$6,$7)
-        RETURNING *`
+        const query = `WITH inserted_book AS (
+        INSERT INTO books(title, author, isbn, price, stock, description, categorie_id)
+        VALUES($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+        )
+        SELECT 
+        b.categorie_id,
+        c.name AS category_name
+        FROM inserted_book b
+        JOIN categories c ON b.categorie_id = c.id`
         const values = [
             data.title,
             data.author,
@@ -52,8 +59,8 @@ const book = {
     },
     getBooksFilters: async (whereClause, values) => {
         let query = `
-        SELECT  id, title, author, price, stock, description, created_at
-        FROM books 
+        SELECT  books.id, title, author, price, stock, description, categories.name AS categorie, created_at
+        FROM books JOIN categories ON books.categorie_id = categories.id
     `;
 
         if (whereClause) {
@@ -109,7 +116,7 @@ const book = {
         const query = `SELECT name FROM categories WHERE id = $1`
         const value = [id]
         const result = await pool.query(query, value)
-        return result.rows[0]
+        return result.rows
     },
     categoryIds: async (ids) => {
         const query = `SELECT id, name FROM categories WHERE id = ANY($1)`
