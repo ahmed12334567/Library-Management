@@ -63,17 +63,43 @@ const borrowBook = {
         const result = await pool.query(query, values)
         return result.rows[0]
     },
-    updateBorrowBook: async (data) => {
-        const { id, ...fieldsToUpdate } = data
-        const keys = Object.keys(fieldsToUpdate)
-        const setClause = keys.map((key, index) => `${key} = $${index + 1}`).join(", ")
-
-        const query = `UPDATE borrowedbooks SET ${setClause}
-        WHERE id = $${keys.length + 1}
-        RETURNING *`
-        const values = [...Object.keys(fieldsToUpdate), id]
-        const result = await pool.query(query, values)
-        return result.rows[0]
+    getBorrowBookByUserId: async (userId) =>{
+        const query = `SELECT 
+                        borrowedbooks.id AS borrow_id,
+                        books.id AS bookid,
+                        books.title,
+                        borrowedbooks.borrow_date, 
+                        borrowedbooks.return_date,
+                        borrowedbooks.status
+                    FROM borrowedbooks
+                    JOIN books ON borrowedbooks.book_id = books.id
+                    WHERE user_id = $1 AND status = 'borrowed'
+                    ORDER BY borrow_date DESC`
+        const value = [userId]
+        const result = await pool.query(query, value)
+        return result.rows
+    },
+    getBorrowBookByUserIdAndBookId: async (data) =>{
+        const query = `SELECT 
+                        borrowedbooks.id AS borrow_id,
+                        books.id AS bookid,
+                        books.title,
+                        borrowedbooks.borrow_date, 
+                        borrowedbooks.return_date
+                    FROM borrowedbooks
+                    JOIN books ON borrowedbooks.book_id = books.id
+                    WHERE user_id = $1 AND book_id = $2 AND status = 'borrowed'
+                    ORDER BY borrow_date DESC`
+        const value = [data.userId, data.bookId]
+        const result = await pool.query(query, value)
+        return result.rows
+    },
+    updateBorrowStatus: async (id) =>{
+        const query = `UPDATE borrowedbooks 
+        SET status = 'returned', return_date = NOW()  WHERE id = $1`
+        const value = [id]
+        const result = await pool.query(query, value)
+        return result.rowCount > 0
     },
     deleteBorroweBookById: async (id) => {
         const query = `DELETE FROM borrowedbooks 

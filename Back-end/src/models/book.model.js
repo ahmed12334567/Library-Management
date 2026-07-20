@@ -124,8 +124,15 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows
     },
-    updateStock: async (bookId) => {
+    decreaseStock: async (bookId) => {
         const query = `UPDATE books SET stock = stock - 1
+        WHERE id = $1 AND stock > 0`;
+        const value = [bookId];
+        const result = await pool.query(query, value);
+        return result.rowCount > 0;
+    },
+    increaseStock: async (bookId) => {
+        const query = `UPDATE books SET stock = stock + 1
         WHERE id = $1 AND stock > 0`;
         const value = [bookId];
         const result = await pool.query(query, value);
