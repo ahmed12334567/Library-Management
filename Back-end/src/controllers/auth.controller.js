@@ -124,7 +124,7 @@ router.post("/login", asyncHandler(async (req, res) => {
 ))
 
 router.get("/me", asyncHandler(async (req, res) => {
-    const email = req.userEmail
+    const { email } = req.user
 
     const existingUser = await userModel.findUserByEmail(email)
 

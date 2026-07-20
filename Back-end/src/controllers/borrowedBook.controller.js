@@ -6,7 +6,7 @@ const { asyncHandler } = require("../middleware/error.middleware")
 const formateDate = require("../Utility/formateDate")
 
 router.post("/", asyncHandler(async (req, res) => {
-    const userId = req.userId
+    const { id } = req.user
     const bookId = req.body?.book_id
 
 
@@ -20,7 +20,7 @@ router.post("/", asyncHandler(async (req, res) => {
         })
     }
     const newBorroweBookReq = {
-        userId,
+        id,
         bookId
     }
     const checkUserHaveReq = await borroweBookModel.checkUserHaveReq(newBorroweBookReq)
@@ -50,10 +50,10 @@ router.post("/", asyncHandler(async (req, res) => {
 }))
 
 router.delete("/", asyncHandler(async (req, res) => {
-    const userId = req.userId
+    const { id } = req.user
     const bookId = req.body?.book_id
     const newBorroweBookReq = {
-        userId,
+        id,
         bookId
     }
     const checkUserHaveReq = await borroweBookModel.checkUserHaveReq(newBorroweBookReq)
@@ -136,7 +136,7 @@ router.patch("/:id/Approved", asyncHandler(async (req, res) => {
         })
     }
     const newBorrowedBook = {
-        userId: user_id,
+        id: user_id,
         bookId: book_id
     }
 

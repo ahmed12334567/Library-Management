@@ -61,34 +61,8 @@ const validtionLogin = [
 
 let JWT_SECRET = process.env.JWT_SECRET;
 
-const verifyUser =
-    function verifyUserf(req, res, next) {
-        const authHeader = req.headers["authorization"];
-        const token = authHeader && authHeader.split(" ")[1];
-
-        if (!token) {
-            return res.status(401).json({ success: false, message: "Token is required" });
-        }
-        jwt.verify(token, JWT_SECRET, (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ success: false, message: "Invalid or expired token" });
-            }
-            if (decoded.role !== "user") {
-                return res.status(401).json({
-                    status: "fail",
-                    data: {
-                        message: "Unauthorized"
-                    }
-                })
-            }
-            req.userEmail = decoded.email;
-            req.userId = decoded.id;
-            next();
-        });
-    }
-
-const verifyAdmin =
-    function verifyAdmin(req, res, next) {
+const verify =
+    function verify(req, res, next) {
         const authHeader = req.headers["authorization"];
         const token = authHeader && authHeader.split(" ")[1];
 
@@ -98,20 +72,31 @@ const verifyAdmin =
 
         jwt.verify(token, JWT_SECRET, (err, decoded) => {
             if (err) {
-                return res.status(401).json({ success: false, message: "Invalid or expired token" });
+                if (err.name === "TokenExpiredError") {
+                    return res.status(401).json({ status: "fail", data: { message: "expired token" } });
+                }
+                return res.status(401).json({ status: "fail", data: { message: "Invalid token" } });
             }
-            if (decoded.role !== "admin") {
-                return res.status(401).json({
-                    status: "fail",
-                    data: {
-                        message: "Unauthorized"
-                    }
-                })
-            }
-            req.adminEmail = decoded.email;
-            req.role = decoded.role
-            req.adminId = decoded.id;
+            const { id, email, role } = decoded;
+            req.user = { id, email, role };
             next();
         });
     }
-module.exports = { validtionReg, validtionLogin, verifyUser, verifyAdmin }
+const authorization = function authorization(...roles) {
+    return function (req, res, next) {
+        const { role } = req.user
+        if (!roles.includes(role)) {
+            return res.status(403).json({
+                status: "fail",
+                data: {
+                    message: "Unauthorized"
+                }
+            })
+        }
+        next()
+    };
+
+};
+
+
+module.exports = { validtionReg, validtionLogin, verify, authorization }
