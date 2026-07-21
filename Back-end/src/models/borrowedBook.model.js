@@ -1,3 +1,4 @@
+const { query } = require("express-validator")
 const pool = require("../config/db")
 
 const borrowBook = {
@@ -15,6 +16,15 @@ const borrowBook = {
         const values = [data.userId, data.bookId]
         const result = await pool.query(query, values)
         return result.rows[0]
+    },
+    getAllReqsByUserId: async(userId) =>{
+        const query = `SELECT borrow_requset.id AS id, books.id AS bookid, title, description, status, borrow_requset.created_at
+        FROM borrow_requset 
+        JOIN books ON borrow_requset.book_id = books.id
+        WHERE borrow_requset.user_id = $1`
+        const value = [userId]
+        const result = await pool.query(query, value)
+        return result.rows
     },
     checkUserHaveReq: async (data) => {
         const query = `SELECT * FROM borrow_requset WHERE 

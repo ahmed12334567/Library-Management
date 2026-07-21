@@ -6,6 +6,7 @@ const { verify, authorization } = require("../middleware/auth.middleware")
 
 router.post("/", verify, authorization("user"), createBorrowBookMiddleware, borrowBookController)
 router.get("/my-borrowed-books",verify, authorization("user"), borrowBookController)
+router.get("/borrow-requests/me",verify, authorization("user"), borrowBookController)
 router.get("/get-requsets",verify, authorization("admin"), borrowBookController)
 router.get("/over-date",verify, authorization("admin"), borrowBookController)
 router.post("/return-book/:id",verify, authorization("user"), borrowBookController)

@@ -8,12 +8,21 @@ const formateBorrowRow = (row) => {
         username: row.username,
         email: row.email,
         bookId: row.bookid,
-        bookId: row.book_id,
         title: row.title,
         stock: row.stock,
         stauts: row.status,
         borrowedDate: formateDate(row.borrow_date),
-        returnDate: formateDate(row.return_date)
+        returnDate: formateDate(row.return_date),
+    }
+}
+const formateReqsRow = (row) => {
+    return {
+        id: row.id,
+        book_id: row.bookid,
+        book_title: row.title,
+        description: row.description,
+        status: row.status,
+        requseted_at: formateDate(row.created_at)
     }
 }
 const formateReqRow = (row) => {
@@ -30,4 +39,4 @@ const formateReqRow = (row) => {
     }
 }
 
-module.exports = { formateBorrowRow, formateReqRow }
+module.exports = { formateBorrowRow, formateReqRow, formateReqsRow }

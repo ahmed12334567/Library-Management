@@ -3,7 +3,7 @@ const router = express.Router();
 const borroweBookModel = require("../models/borrowedBook.model")
 const bookModel = require("../models/book.model")
 const { asyncHandler } = require("../middleware/error.middleware")
-const { formateBorrowRow, formateReqRow } = require("../Utility/fromatBorrowRow")
+const { formateBorrowRow, formateReqRow, formateReqsRow } = require("../Utility/fromatBorrowRow")
 
 router.post("/", asyncHandler(async (req, res) => {
     const { id } = req.user
@@ -104,7 +104,7 @@ router.patch("/:id/Approved", asyncHandler(async (req, res) => {
     }
     const user_id = reqData.user_id
     const book_id = reqData.book_id
-    
+
     const newStatus = {
         status: "Accept",
         id: reqId
@@ -280,6 +280,27 @@ router.get("/over-date", asyncHandler(async (req, res) => {
         status: "success",
         data: {
             overDateBorrow: formattedOverDateBorrow
+        }
+    })
+}))
+
+router.get("/borrow-requests/me", asyncHandler(async (req, res) => {
+    const { id } = req.user
+
+    const userReqs = await borroweBookModel.getAllReqsByUserId(id)
+    if(userReqs.length === 0){
+        return res.status(200).json({
+            status: "success",
+            data:{
+                message: "This user has no borrowing requests"
+            }
+        })
+    }
+    const fromatedData = userReqs.map(formateReqsRow)
+    return res.status(200).json({
+        status: "success",
+        data:{
+            requests: fromatedData
         }
     })
 }))

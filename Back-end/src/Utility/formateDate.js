@@ -12,7 +12,7 @@ function formatDate(date) {
 
     return !isNaN(dateObj.getTime())
         ? dateObj.toLocaleString("en-US", optionsEn)
-        : "Invalid Date";
+        : "";
 }
 
 module.exports = formatDate;
