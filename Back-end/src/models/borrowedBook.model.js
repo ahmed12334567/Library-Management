@@ -61,7 +61,7 @@ const borrowBook = {
         RETURNING *`
         const values = [data.userId, data.bookId]
         const result = await pool.query(query, values)
-        return result.rows[0]
+        return result.rows
     },
     getBorrowBookByUserId: async (userId) =>{
         const query = `SELECT 
@@ -115,7 +115,7 @@ const borrowBook = {
                         users.username, 
                         users.email, 
                         books.id AS bookid,
-                        books.title AS book_title, 
+                        books.title, 
                         books.stock AS stock,
                         borrowedbooks.borrow_date, 
                         borrowedbooks.return_date, 
@@ -124,6 +124,27 @@ const borrowBook = {
                     JOIN users ON borrowedbooks.user_id = users.id
                     JOIN books ON borrowedbooks.book_id = books.id
                     ORDER BY borrow_date DESC`
+        const result = await pool.query(query);
+        return result.rows
+    },
+    overDateBorrow: async () =>{
+        const query = `SELECT 
+                        borrowedbooks.id AS borrow_id, 
+                        users.id AS userid,
+                        users.username, 
+                        users.email, 
+                        books.id AS bookid,
+                        books.title, 
+                        books.stock AS stock,
+                        borrowedbooks.borrow_date, 
+                        borrowedbooks.return_date, 
+                        borrowedbooks.status
+                    FROM borrowedbooks 
+                    JOIN users ON borrowedbooks.user_id = users.id
+                    JOIN books ON borrowedbooks.book_id = books.id
+                    WHERE borrowedbooks.return_date < NOW()
+                    AND borrowedbooks.status = 'borrowed'
+                    ORDER BY borrow_date DESC `
         const result = await pool.query(query);
         return result.rows
     }

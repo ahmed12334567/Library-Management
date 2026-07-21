@@ -12,7 +12,8 @@ const formateDate = require("../Utility/formateDate");
 router.get("/", asyncHandler(async (req, res) => {
     const filters = {
         categorie_id: req.query.categoryId,
-        author: req.query.author
+        author: req.query.author,
+        title: req.query.title
     };
     const keys = Object.entries(filters)
     const filterArray = keys.filter(el => el[1] !== undefined)
@@ -27,7 +28,7 @@ router.get("/", asyncHandler(async (req, res) => {
         return res.status(404).json({
             status: "fail",
             data: {
-                message: "Book not found Please check the ID"
+                message: "Book not found Please check the data"
             }
         })
     }

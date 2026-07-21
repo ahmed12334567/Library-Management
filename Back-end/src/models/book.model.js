@@ -8,7 +8,7 @@ const book = {
         RETURNING *
         )
         SELECT 
-        b.categorie_id,
+        b.*,
         c.name AS category_name
         FROM inserted_book b
         JOIN categories c ON b.categorie_id = c.id`
