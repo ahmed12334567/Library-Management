@@ -19,6 +19,19 @@ const user = {
         const value = [email]
         const result = await pool.query(query, value)
         return result.rows[0]
+    },
+    getUsers: async () => {
+        const query = `SELECT id, username, email, role, google_user, created_at
+        FROM users ORDER BY created_at DESC`
+        const result = await pool.query(query)
+        return result.rows
+    },
+    getUser: async (id) => {
+        const query = `SELECT id, username, email, role, google_user, created_at
+        FROM users WHERE id = $1`
+        const vlaue = [id]
+        const result = await pool.query(query, vlaue)
+        return result.rows
     }
 }
 

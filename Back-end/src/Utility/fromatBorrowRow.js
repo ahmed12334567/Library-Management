@@ -38,5 +38,20 @@ const formateReqRow = (row) => {
         date: formateDate(row.created_at)
     }
 }
+const formateUsersRows = (row) => {
+    return {
+        id: row.id,
+        username: row.username,
+        email: row.email,
+        role: row.role,
+        google_user: row.google_user,
+        join_at: formateDate(row.created_at)
+    }
+}
 
-module.exports = { formateBorrowRow, formateReqRow, formateReqsRow }
+module.exports = {
+    formateBorrowRow,
+    formateReqRow,
+    formateReqsRow,
+    formateUsersRows
+}

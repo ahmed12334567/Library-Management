@@ -8,6 +8,7 @@ const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client();
 const JWT_SECRET = process.env.JWT_SECRET
 const { asyncHandler } = require("../middleware/error.middleware")
+const { formateUsersRows } = require("../Utility/fromatBorrowRow")
 
 asyncHandler(async function verifyGoogleToken(accessToken) {
     client.setCredentials({ access_token: accessToken });
@@ -228,5 +229,47 @@ router.post("/google", asyncHandler(async (req, res) => {
 
 }
 ));
+
+router.get("/users", asyncHandler(async (req, res) => {
+    const users = await userModel.getUsers()
+    const fromatUsers = users.map(formateUsersRows)
+
+    return res.status(200).json({
+        status: "success",
+        data: {
+            number_of_users: fromatUsers.length,
+            users: fromatUsers
+        }
+    })
+}))
+
+router.get("/users/:id", asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id)
+    if (!Number.isFinite(userId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid requset ID"
+            }
+        })
+    }
+    const user = await userModel.getUser(userId)
+    if(user.length === 0){
+        return res.status(400).json({
+            status: "fail",
+            data:{
+                message: "user not found check user ID"
+            }
+        })
+    }
+    const formatUser = user.map(formateUsersRows)
+    
+    return res.status(200).json({
+        status: "fail",
+        data:{
+            user: formatUser
+        }
+    })
+}))
 
 module.exports = router
