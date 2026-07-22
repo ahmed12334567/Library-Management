@@ -74,6 +74,14 @@ router.delete("/", asyncHandler(async (req, res) => {
 
 router.get("/get-requsets", asyncHandler(async (req, res) => {
     const requests = await borroweBookModel.getAllBorrowBookReq()
+    if(requests.length === 0){
+        return res.status(200).json({
+            status: "success",
+            data:{
+                message: "There are no book borrow requests"
+            }
+        })
+    }
     const formateBorrowReq = requests.map(formateReqRow)
     return res.status(200).json({
         status: "success",

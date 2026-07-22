@@ -1,4 +1,3 @@
-const { query } = require("express-validator")
 const pool = require("../config/db")
 
 const borrowBook = {
