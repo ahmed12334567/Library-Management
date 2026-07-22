@@ -249,26 +249,92 @@ router.get("/users/:id", asyncHandler(async (req, res) => {
         return res.status(400).json({
             status: "fail",
             data: {
-                message: "Invalid requset ID"
+                message: "Invalid user ID"
             }
         })
     }
     const user = await userModel.getUser(userId)
-    if(user.length === 0){
+    if (user.length === 0) {
         return res.status(400).json({
             status: "fail",
-            data:{
+            data: {
                 message: "user not found check user ID"
             }
         })
     }
     const formatUser = user.map(formateUsersRows)
-    
+
     return res.status(200).json({
         status: "fail",
-        data:{
+        data: {
             user: formatUser
         }
+    })
+}))
+
+router.patch("/users/:id/role", asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id)
+    const role = req.body?.role?.trim()
+    if (!Number.isFinite(userId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid user ID"
+            }
+        })
+    }
+    if (!role) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid role"
+            }
+        })
+    }
+    const newRole = {
+        role: role,
+        id: userId
+    }
+    const changeRole = await userModel.updateUser(newRole)
+    if (!changeRole) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "user not found check user ID"
+            }
+        })
+    }
+    return res.status(201).json({
+        status: "success",
+        data:{
+            message: "user updated successfuly"
+        }
+    })
+}))
+
+router.delete("/users/:id", asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id)
+    if (!Number.isFinite(userId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid user ID"
+            }
+        })
+    }
+
+    const deleteUser = await userModel.deleteUser(userId)
+    if (!deleteUser) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "user not found check user ID"
+            }
+        })
+    }
+    return res.status(200).json({
+        status: "success",
+        data: null
     })
 }))
 

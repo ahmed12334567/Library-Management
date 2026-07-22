@@ -7,6 +7,8 @@ router.post("/register", validtionReg, authController)
 router.post("/login", validtionLogin, authController)
 router.get("/me", verify, authorization("user"), authController)
 router.get("/users/:id", verify, authorization("admin"), authController)
+router.patch("/users/:id/role", verify, authorization("admin"), authController)
+router.delete("/users/:id", verify, authorization("admin"), authController)
 router.get("/users", verify, authorization("admin"), authController)
 
 module.exports = router

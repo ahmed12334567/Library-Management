@@ -32,6 +32,19 @@ const user = {
         const vlaue = [id]
         const result = await pool.query(query, vlaue)
         return result.rows
+    },
+    deleteUser: async(id) =>{
+        const query = `DELETE FROM users WHERE id = $1`
+        const value = [id]
+        const result = await pool.query(query, value)
+        return result.rowCount > 0;
+    },
+    updateUser: async(data) =>{
+        const query = `UPDATE users SET role = $1
+        WHERE id = $2`
+        const value = [data.role, data.id]
+        const result = await pool.query(query, value)
+        return result.rowCount > 0;
     }
 }
 
