@@ -7,7 +7,7 @@ const xlsx = require("xlsx");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 const { asyncHandler } = require("../middleware/error.middleware")
-const {fromatedBookData} = require("../Utility/fromatBorrowRow")
+const { fromatedBookData } = require("../Utility/fromatBorrowRow")
 
 router.get("/", asyncHandler(async (req, res) => {
     const filters = {
@@ -21,30 +21,30 @@ router.get("/", asyncHandler(async (req, res) => {
     let index = 1;
 
     const whereClause = Object.entries(filters)
-    .filter(([_, value]) => value !== undefined && value !== "")
-    .map(([key, value]) =>{
+        .filter(([_, value]) => value !== undefined && value !== "")
+        .map(([key, value]) => {
 
-        if(key === "search"){
-            values.push(`%${value}%`);
+            if (key === "search") {
+                values.push(`%${value}%`);
 
-            return `(title ILIKE $${index}
+                return `(title ILIKE $${index}
                      OR author ILIKE $${index}
                      OR description ILIKE $${index++})`
-        }
+            }
 
-        if(key === "maxPrice"){
-            values.push(value)
+            if (key === "maxPrice") {
+                values.push(value)
 
-            return `price <= $${index++}`
-        }
-        if(key === "minPrice"){
-            values.push(value)
+                return `price <= $${index++}`
+            }
+            if (key === "minPrice") {
+                values.push(value)
 
-            return `price >= $${index++}`
-        }
-        values.push(value);
-        return `${key} = $${index++}`;
-    }).join(" AND ");
+                return `price >= $${index++}`
+            }
+            values.push(value);
+            return `${key} = $${index++}`;
+        }).join(" AND ");
     const books = await bookModel.getBooksFilters(whereClause, values)
     if (books.length === 0) {
         return res.status(404).json({
