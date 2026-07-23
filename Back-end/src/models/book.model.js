@@ -57,18 +57,36 @@ const book = {
         const result = await pool.query(query, values)
         return result.rows
     },
-    getBooksFilters: async (whereClause, values) => {
+    getBooksFilters: async (whereClause, values, sort, order, limit, offset) => {
         let query = `
-        SELECT  books.id, title, author, price, stock, description, categories.name AS categorie, created_at
+        SELECT  books.id, title, author, price, stock, description, 
+        categories.name AS categorie, created_at
         FROM books JOIN categories ON books.categorie_id = categories.id
     `;
 
         if (whereClause) {
             query += ` WHERE ${whereClause}`;
         }
-        query += ` ORDER BY created_at DESC`
+        query += ` ORDER BY ${sort} ${order}, books.id ${order}`
+        const limitIndex = values.length + 1;
+        values.push(limit);
+
+        const offsetIndex = values.length + 1;
+        values.push(offset);
+        query += ` LIMIT $${limitIndex} OFFSET $${offsetIndex}`
+
         const result = await pool.query(query, values);
         return result.rows;
+    },
+    totalBooks: async (whereClause) => {
+        const query = `SELECT COUNT(*) AS total_books FROM books`
+
+        if (whereClause) {
+            query += ` WHERE ${whereClause}`;
+        }
+
+        const result = await pool.query(query)
+        return result.rows[0]
     },
     getBookById: async (id) => {
         const query = `SELECT title, author, price, stock, description, created_at FROM books WHERE id = $1`

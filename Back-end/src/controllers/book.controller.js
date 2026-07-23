@@ -17,6 +17,44 @@ router.get("/", asyncHandler(async (req, res) => {
         maxPrice: req.query.maxPrice,
         minPrice: req.query.minPrice
     };
+
+    const pages = Number(req.query.pages) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const offset = (pages - 1) * limit
+
+    const sort = req.query.sort || "created_at";
+    const order = (req.query.order || "DESC").toUpperCase();
+
+    const allowedSort = {
+        price: "price",
+        title: "title",
+        author: "author",
+        created_at: "created_at",
+        categorie: "categories.name"
+    };
+    const allowedOrder = [
+        "ASC",
+        "DESC"
+    ]
+    const validOrder = allowedOrder.includes(order?.toUpperCase());
+    if (!(sort in allowedSort)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "invalid sort item"
+            }
+        })
+    }
+
+    if (!validOrder) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "invalid order item"
+            }
+        })
+    }
+
     const values = [];
     let index = 1;
 
@@ -45,7 +83,7 @@ router.get("/", asyncHandler(async (req, res) => {
             values.push(value);
             return `${key} = $${index++}`;
         }).join(" AND ");
-    const books = await bookModel.getBooksFilters(whereClause, values)
+    const books = await bookModel.getBooksFilters(whereClause, values, sort, order, limit, offset)
     if (books.length === 0) {
         return res.status(404).json({
             status: "fail",
@@ -54,12 +92,25 @@ router.get("/", asyncHandler(async (req, res) => {
             }
         })
     }
+    const totalBooks = await bookModel.totalBooks(whereClause)
+    const totalPages = Math.ceil(Number(totalBooks.total_books) / limit)
+    const hasNextPage = pages < totalPages;
+    const hasPreviousPage = pages > 1;
+
     const formatDate = books.map(fromatedBookData)
 
     return res.status(200).json({
         status: "success",
         data: {
-            number_of_books: formatDate.length,
+            result: formatDate.length,
+            pagination: {
+                page: pages,
+                limit: limit,
+                totalBooks: Number(totalBooks.total_books),
+                totalPages: totalPages,
+                hasNextPage: hasNextPage,
+                hasPreviousPage: hasPreviousPage
+            },
             books: formatDate
         }
     })
