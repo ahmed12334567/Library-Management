@@ -7,24 +7,34 @@ const { verify, authorization } = require("../middleware/auth.middleware");
  * @swagger
  * tags:
  *   name: Dashboard
- *   description: Admin dashboard statistics and metrics
+ *   description: Administrative analytics and metric aggregations
  */
 
 /**
  * @swagger
  * /dashboard/statistics:
  *   get:
- *     summary: Get dashboard statistics summary (Admin only)
+ *     summary: Retrieve system-wide statistical metrics (Admin only)
  *     tags: [Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Dashboard statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/DashboardStatistics'
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized (Invalid or missing JWT token)
  *       403:
- *         description: Forbidden
+ *         description: Forbidden (Admin role required)
  */
 router.get("/statistics", verify, authorization("admin"), dashboardControllers);
 

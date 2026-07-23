@@ -7,24 +7,39 @@ const { verify, authorization } = require("../middleware/auth.middleware");
  * @swagger
  * tags:
  *   name: Categories
- *   description: Category management endpoints
+ *   description: Book classification categories management
  */
 
 /**
  * @swagger
  * /categories:
  *   get:
- *     summary: Get all book categories (Admin only)
+ *     summary: Retrieve list of all book categories (Admin only)
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of categories retrieved
+ *         description: List of categories retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     categories:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Category'
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         description: Forbidden (Admin only)
  */
 router.get("/", verify, authorization("admin"), categorieController);
 
@@ -32,7 +47,7 @@ router.get("/", verify, authorization("admin"), categorieController);
  * @swagger
  * /categories:
  *   post:
- *     summary: Create a new category (Admin only)
+ *     summary: Add a new category (Admin only)
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
@@ -41,22 +56,34 @@ router.get("/", verify, authorization("admin"), categorieController);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 example: Science Fiction
+ *             $ref: '#/components/schemas/CategoryInput'
  *     responses:
- *       201:
+ *       200:
  *         description: Category created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: categorie added successfuly
+ *                     categorie:
+ *                       $ref: '#/components/schemas/Category'
  *       400:
- *         description: Category already exists or validation error
+ *         description: Missing or invalid category name
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
+ *       409:
+ *         description: Category already exists
  */
 router.post("/", verify, authorization("admin"), categorieController);
 
@@ -64,7 +91,7 @@ router.post("/", verify, authorization("admin"), categorieController);
  * @swagger
  * /categories/{id}:
  *   delete:
- *     summary: Delete category by ID (Admin only)
+ *     summary: Remove a category by ID (Admin only)
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
@@ -74,16 +101,18 @@ router.post("/", verify, authorization("admin"), categorieController);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Category ID
+ *         description: Target category ID
  *     responses:
  *       200:
  *         description: Category deleted successfully
+ *       400:
+ *         description: Invalid category ID
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
- *       404:
- *         description: Category not found
+ *       409:
+ *         description: Category does not exist
  */
 router.delete("/:id", verify, authorization("admin"), categorieController);
 

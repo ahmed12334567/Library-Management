@@ -8,14 +8,14 @@ const { verify, authorization } = require("../middleware/auth.middleware");
  * @swagger
  * tags:
  *   name: Borrow
- *   description: Book borrowing and request management endpoints
+ *   description: Book borrowing workflows, active loans, overdue tracking, and request approval management
  */
 
 /**
  * @swagger
  * /borrow:
  *   post:
- *     summary: Request to borrow a book (User only)
+ *     summary: Submit a request to borrow a book (User only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -24,22 +24,34 @@ const { verify, authorization } = require("../middleware/auth.middleware");
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - book_id
- *             properties:
- *               book_id:
- *                 type: integer
- *                 example: 1
+ *             $ref: '#/components/schemas/BorrowInput'
  *     responses:
  *       201:
- *         description: Borrow request created
+ *         description: Borrow request created and set to Pending
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Borrow book request created successfully
+ *                     borrowBookReq:
+ *                       $ref: '#/components/schemas/BorrowRequest'
  *       400:
- *         description: Already requested or book unavailable
+ *         description: Invalid book ID or book unavailable
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden (User only)
+ *       409:
+ *         description: User already has pending request or actively borrowed this book
  */
 router.post("/", verify, authorization("user"), createBorrowBookMiddleware, borrowBookController);
 
@@ -47,13 +59,35 @@ router.post("/", verify, authorization("user"), createBorrowBookMiddleware, borr
  * @swagger
  * /borrow/my-borrowed-books:
  *   get:
- *     summary: Get currently borrowed books of logged-in user
+ *     summary: Get currently active borrowed books for the logged-in user (User only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of currently borrowed books
+ *         description: Active borrowed books list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     borrowedBooks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: integer, example: 1 }
+ *                           bookid: { type: integer, example: 5 }
+ *                           title: { type: string, example: "Clean Code" }
+ *                           description: { type: string, example: "Software Craftsmanship" }
+ *                           borrowed_at: { type: string, format: "date-time" }
+ *                           due_date: { type: string, format: "date-time" }
  *       401:
  *         description: Unauthorized
  */
@@ -63,13 +97,28 @@ router.get("/my-borrowed-books", verify, authorization("user"), borrowBookContro
  * @swagger
  * /borrow/borrow-requests/me:
  *   get:
- *     summary: Get borrowing requests of logged-in user
+ *     summary: Get all borrow requests (Pending, Approved, Rejected) submitted by logged-in user (User only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of user borrowing requests
+ *         description: Borrow requests list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     requests:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BorrowRequest'
  *       401:
  *         description: Unauthorized
  */
@@ -79,17 +128,32 @@ router.get("/borrow-requests/me", verify, authorization("user"), borrowBookContr
  * @swagger
  * /borrow/get-requsets:
  *   get:
- *     summary: Get all pending borrow requests (Admin only)
+ *     summary: Retrieve all pending borrow requests across all users (Admin only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of pending borrow requests
+ *         description: Pending borrow requests list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     requests:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BorrowRequest'
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden
+ *         description: Forbidden (Admin only)
  */
 router.get("/get-requsets", verify, authorization("admin"), borrowBookController);
 
@@ -97,13 +161,28 @@ router.get("/get-requsets", verify, authorization("admin"), borrowBookController
  * @swagger
  * /borrow/over-date:
  *   get:
- *     summary: Get overdue borrowed books (Admin only)
+ *     summary: List all overdue borrowed books past due date (Admin only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of overdue borrowed books
+ *         description: Overdue borrow records
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overdue:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/OverdueBorrowRecord'
  *       401:
  *         description: Unauthorized
  *       403:
@@ -115,7 +194,7 @@ router.get("/over-date", verify, authorization("admin"), borrowBookController);
  * @swagger
  * /borrow/return-book/{id}:
  *   post:
- *     summary: Return a borrowed book (User only)
+ *     summary: Return a borrowed book by loan record ID (User only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -128,11 +207,11 @@ router.get("/over-date", verify, authorization("admin"), borrowBookController);
  *         description: Borrow record ID
  *     responses:
  *       200:
- *         description: Book returned successfully
+ *         description: Book returned successfully, copy restored to library
+ *       400:
+ *         description: Invalid borrow ID or book already returned
  *       401:
  *         description: Unauthorized
- *       404:
- *         description: Borrow record not found
  */
 router.post("/return-book/:id", verify, authorization("user"), borrowBookController);
 
@@ -140,7 +219,7 @@ router.post("/return-book/:id", verify, authorization("user"), borrowBookControl
  * @swagger
  * /borrow/borrowed:
  *   get:
- *     summary: Get all active borrowed books across system (Admin only)
+ *     summary: Get all active borrowed books system-wide (Admin only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -158,7 +237,7 @@ router.get("/borrowed", verify, authorization("admin"), borrowBookController);
  * @swagger
  * /borrow/{id}/Approved:
  *   patch:
- *     summary: Approve a borrow request (Admin only)
+ *     summary: Approve a pending borrow request by request ID (Admin only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -168,10 +247,12 @@ router.get("/borrowed", verify, authorization("admin"), borrowBookController);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Request ID
+ *         description: Borrow request ID
  *     responses:
  *       200:
- *         description: Request approved
+ *         description: Borrow request approved and loan record initialized
+ *       400:
+ *         description: Invalid request ID or request not in Pending state
  *       401:
  *         description: Unauthorized
  *       403:
@@ -185,7 +266,7 @@ router.patch("/:id/Approved", verify, authorization("admin"), borrowBookControll
  * @swagger
  * /borrow/{id}/Reject:
  *   patch:
- *     summary: Reject a borrow request (Admin only)
+ *     summary: Reject a pending borrow request by request ID (Admin only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -195,10 +276,12 @@ router.patch("/:id/Approved", verify, authorization("admin"), borrowBookControll
  *         required: true
  *         schema:
  *           type: integer
- *         description: Request ID
+ *         description: Borrow request ID
  *     responses:
  *       200:
- *         description: Request rejected
+ *         description: Borrow request rejected
+ *       400:
+ *         description: Invalid request ID
  *       401:
  *         description: Unauthorized
  *       403:
@@ -212,7 +295,7 @@ router.patch("/:id/Reject", verify, authorization("admin"), borrowBookController
  * @swagger
  * /borrow/{id}:
  *   delete:
- *     summary: Cancel/delete a pending borrow request (User only)
+ *     summary: Cancel/delete a pending borrow request by request ID (User only)
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -222,10 +305,12 @@ router.patch("/:id/Reject", verify, authorization("admin"), borrowBookController
  *         required: true
  *         schema:
  *           type: integer
- *         description: Request ID
+ *         description: Borrow request ID
  *     responses:
  *       200:
- *         description: Request deleted/cancelled
+ *         description: Request cancelled/deleted successfully
+ *       400:
+ *         description: Invalid request ID or request not owned by user
  *       401:
  *         description: Unauthorized
  *       404:

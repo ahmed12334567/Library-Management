@@ -15,34 +15,55 @@ const bookController = require("../controllers/book.controller");
  * @swagger
  * /books:
  *   get:
- *     summary: Get list of books with optional filters
+ *     summary: Retrieve list of books with optional search, pagination, and category filters
  *     tags: [Books]
  *     parameters:
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
- *         description: Search term for book title or author
+ *         description: Search keyword for book title or author
  *       - in: query
  *         name: category
  *         schema:
  *           type: string
- *         description: Category name or ID filter
+ *         description: Category name or ID
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number
+ *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of items per page
+ *         description: Number of books per page
  *     responses:
  *       200:
  *         description: List of books retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     books:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Book'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         total: { type: integer, example: 50 }
+ *                         page: { type: integer, example: 1 }
+ *                         limit: { type: integer, example: 10 }
  */
 router.get("/", bookController);
 
@@ -50,7 +71,7 @@ router.get("/", bookController);
  * @swagger
  * /books/{id}:
  *   get:
- *     summary: Get book details by ID
+ *     summary: Retrieve detailed information for a specific book by ID
  *     tags: [Books]
  *     parameters:
  *       - in: path
@@ -58,10 +79,25 @@ router.get("/", bookController);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Book ID
+ *         description: Target book ID
  *     responses:
  *       200:
- *         description: Book details retrieved
+ *         description: Book details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     book:
+ *                       $ref: '#/components/schemas/Book'
+ *       400:
+ *         description: Invalid book ID
  *       404:
  *         description: Book not found
  */
@@ -71,7 +107,7 @@ router.get("/:id", bookController);
  * @swagger
  * /books:
  *   post:
- *     summary: Add a new book (Admin only)
+ *     summary: Create a new book entry in the library inventory (Admin only)
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -80,40 +116,32 @@ router.get("/:id", bookController);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - author
- *               - quantity
- *               - category_id
- *             properties:
- *               title:
- *                 type: string
- *                 example: Clean Architecture
- *               author:
- *                 type: string
- *                 example: Robert C. Martin
- *               description:
- *                 type: string
- *                 example: Software Structure and Design
- *               published_year:
- *                 type: integer
- *                 example: 2017
- *               quantity:
- *                 type: integer
- *                 example: 10
- *               category_id:
- *                 type: integer
- *                 example: 1
+ *             $ref: '#/components/schemas/BookInput'
  *     responses:
  *       201:
- *         description: Book added successfully
+ *         description: Book created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Book added successfully
+ *                     book:
+ *                       $ref: '#/components/schemas/Book'
  *       400:
- *         description: Validation error
+ *         description: Validation error or missing parameters
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden (Admin only)
+ *         description: Forbidden (Admin role required)
  */
 router.post("/", verify, authorization("admin"), validationAddBook, bookController);
 
@@ -121,7 +149,7 @@ router.post("/", verify, authorization("admin"), validationAddBook, bookControll
  * @swagger
  * /books/import-file:
  *   post:
- *     summary: Import books from Excel file (Admin only)
+ *     summary: Bulk import books using an uploaded Excel (.xlsx) file (Admin only)
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -131,16 +159,35 @@ router.post("/", verify, authorization("admin"), validationAddBook, bookControll
  *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - file
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: Excel spreadsheet file (.xlsx)
+ *                 description: Excel spreadsheet file containing book rows (.xlsx)
  *     responses:
  *       200:
- *         description: Books imported successfully
+ *         description: Excel spreadsheet processed and books imported
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: Books imported successfully
+ *                     imported_count:
+ *                       type: integer
+ *                       example: 25
  *       400:
- *         description: Invalid file format or data
+ *         description: No file uploaded or invalid file format
  *       401:
  *         description: Unauthorized
  *       403:
@@ -152,7 +199,7 @@ router.post("/import-file", verify, authorization("admin"), bookController);
  * @swagger
  * /books/{id}:
  *   patch:
- *     summary: Update book details by ID (Admin only)
+ *     summary: Update book attributes by ID (Admin only)
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -162,31 +209,18 @@ router.post("/import-file", verify, authorization("admin"), bookController);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Book ID
+ *         description: Target book ID
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               author:
- *                 type: string
- *               description:
- *                 type: string
- *               published_year:
- *                 type: integer
- *               quantity:
- *                 type: integer
- *               category_id:
- *                 type: integer
+ *             $ref: '#/components/schemas/BookUpdateInput'
  *     responses:
  *       200:
  *         description: Book updated successfully
  *       400:
- *         description: Validation error
+ *         description: Invalid book ID or payload
  *       401:
  *         description: Unauthorized
  *       403:
@@ -200,7 +234,7 @@ router.patch("/:id", verify, authorization("admin"), bookController);
  * @swagger
  * /books/{id}:
  *   delete:
- *     summary: Delete a book by ID (Admin only)
+ *     summary: Remove a book from the catalog by ID (Admin only)
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -210,10 +244,12 @@ router.patch("/:id", verify, authorization("admin"), bookController);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Book ID
+ *         description: Target book ID
  *     responses:
  *       200:
  *         description: Book deleted successfully
+ *       400:
+ *         description: Invalid book ID
  *       401:
  *         description: Unauthorized
  *       403:
