@@ -10,6 +10,7 @@ router.get("/statistics", asyncHandler(async(req, res) =>{
     data: {
         total_users: statistics.total_users,
         total_books: statistics.total_books,
+        available_books: statistics.available_books,
         total_categories: statistics.total_categories,
         total_borrowedbooks: statistics.total_borrowedbooks,
         total_borrow_requset: statistics.total_borrow_requset,

@@ -5,6 +5,7 @@ const dashboard = {
         const query = `SELECT 
 	                    (SELECT COUNT(*) FROM users) AS total_users,
 	                    (SELECT COUNT(*) FROM books) AS total_books,
+	                    (SELECT COUNT(*) FROM books WHERE stock > 0) AS available_books,
 	                    (SELECT COUNT(*) FROM categories) AS total_categories,
 	                    (SELECT COUNT(*) FROM borrowedbooks) AS total_borrowedbooks,
 	                    (SELECT COUNT(*) FROM borrow_requset WHERE status = 'Pending')
