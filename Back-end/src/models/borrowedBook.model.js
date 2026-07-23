@@ -20,15 +20,16 @@ const borrowBook = {
         const query = `SELECT borrow_requset.id AS id, books.id AS bookid, title, description, status, borrow_requset.created_at
         FROM borrow_requset 
         JOIN books ON borrow_requset.book_id = books.id
-        WHERE borrow_requset.user_id = $1`
+        WHERE borrow_requset.user_id = $1
+        ORDER BY borrow_requset.created_at DESC, borrow_requset.id DESC`
         const value = [userId]
         const result = await pool.query(query, value)
         return result.rows
     },
     checkUserHaveReq: async (data) => {
         const query = `SELECT * FROM borrow_requset WHERE 
-        user_id = $1 AND book_id = $2 AND status = 'Pending' `
-        const value = [data.userId, data.bookId]
+        user_id = $1 AND id = $2 AND status = 'Pending' `
+        const value = [data.userId, data.reqId]
         const result = await pool.query(query, value)
         return result.rows[0]
     },
@@ -43,10 +44,10 @@ const borrowBook = {
     },
     deleteBorrowBookReq: async (data) => {
         const query = `DELETE FROM borrow_requset 
-        WHERE book_id = $1 AND user_id = $2 AND status = 'Pending'`
-        const values = [data.bookId, data.userId]
+        WHERE user_id = $1 AND id = $2 AND status = 'Pending'`
+        const values = [data.userId, data.reqId]
         const result = await pool.query(query, values)
-        return result.rows[0]
+        return result.rowCount > 0
     },
     getAllBorrowBookReq: async () => {
         const query = `SELECT  borrow_requset.id AS requestid, users.id AS userid, 
@@ -56,12 +57,9 @@ const borrowBook = {
         borrow_requset.user_id = users.id 
         JOIN books ON
         borrow_requset.book_id = books.id
-        WHERE borrow_requset.status = 'Pending' ORDER BY requestid
+        WHERE borrow_requset.status = 'Pending' ORDER BY borrow_requset.id DESC
         `
-
-        console.time('query');
         const result = await pool.query(query);
-        console.timeEnd('query');
         return result.rows
     },
     createBorrowBook: async (data) => {

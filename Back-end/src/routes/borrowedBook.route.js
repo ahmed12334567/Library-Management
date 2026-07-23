@@ -13,6 +13,6 @@ router.post("/return-book/:id",verify, authorization("user"), borrowBookControll
 router.get("/borrowed", verify, authorization("admin"), borrowBookController)
 router.patch("/:id/Approved", verify, authorization("admin"), borrowBookController)
 router.patch("/:id/Reject", verify, authorization("admin"), borrowBookController)
-router.delete("/", verify, authorization("user"), createBorrowBookMiddleware, borrowBookController)
+router.delete("/:id", verify, authorization("user"), borrowBookController)
 
 module.exports = router

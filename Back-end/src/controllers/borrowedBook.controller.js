@@ -47,25 +47,40 @@ router.post("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.delete("/", asyncHandler(async (req, res) => {
+router.delete("/:id", asyncHandler(async (req, res) => {
     const { id } = req.user
-    const bookId = req.body?.book_id
+    const reqId = parseInt(req.params.id)
+    if (!Number.isFinite(reqId)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid book ID"
+            }
+        })
+    }
     const newBorroweBookReq = {
-        id,
-        bookId
+        userId: id,
+        reqId: reqId
     }
     const checkUserHaveReq = await borroweBookModel.checkUserHaveReq(newBorroweBookReq)
     if (!checkUserHaveReq) {
         return res.status(400).json({
             status: "fail",
             data: {
-                message: "You don't have a pending request for this book."
+                message: "You don't have a pending request for this book"
             }
         })
     }
 
-    await borroweBookModel.deleteBorrowBookReq(newBorroweBookReq)
-
+    const deleteBorrowBookReq = await borroweBookModel.deleteBorrowBookReq(newBorroweBookReq)
+    if (!deleteBorrowBookReq) {
+        return res.status(500).json({
+            status: "fail",
+            data: {
+                message: "something went wrong, please try again later"
+            }
+        });
+    }
     return res.status(200).json({
         status: "success",
         data: null
@@ -74,10 +89,10 @@ router.delete("/", asyncHandler(async (req, res) => {
 
 router.get("/get-requsets", asyncHandler(async (req, res) => {
     const requests = await borroweBookModel.getAllBorrowBookReq()
-    if(requests.length === 0){
+    if (requests.length === 0) {
         return res.status(200).json({
             status: "success",
-            data:{
+            data: {
                 message: "There are no book borrow requests"
             }
         })
@@ -296,10 +311,10 @@ router.get("/borrow-requests/me", asyncHandler(async (req, res) => {
     const { id } = req.user
 
     const userReqs = await borroweBookModel.getAllReqsByUserId(id)
-    if(userReqs.length === 0){
+    if (userReqs.length === 0) {
         return res.status(200).json({
             status: "success",
-            data:{
+            data: {
                 message: "This user has no borrowing requests"
             }
         })
@@ -307,7 +322,7 @@ router.get("/borrow-requests/me", asyncHandler(async (req, res) => {
     const fromatedData = userReqs.map(formateReqsRow)
     return res.status(200).json({
         status: "success",
-        data:{
+        data: {
             requests: fromatedData
         }
     })
