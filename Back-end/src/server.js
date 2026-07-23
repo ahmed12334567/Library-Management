@@ -17,6 +17,9 @@ app.use("/api/v1/borrow", borrowBookRoute)
 const dashboardRoute = require("./routes/dashboard.route")
 app.use("/api/v1/dashboard", dashboardRoute)
 
+const categoriesRoute = require("./routes/categories.routes")
+app.use("/api/v1/categories", categoriesRoute)
+
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
