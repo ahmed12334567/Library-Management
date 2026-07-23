@@ -7,22 +7,44 @@ const xlsx = require("xlsx");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, fileFilter: fileFilter });
 const { asyncHandler } = require("../middleware/error.middleware")
-const formateDate = require("../Utility/formateDate");
+const {fromatedBookData} = require("../Utility/fromatBorrowRow")
 
 router.get("/", asyncHandler(async (req, res) => {
     const filters = {
         categorie_id: req.query.categoryId,
         author: req.query.author,
-        title: req.query.title
+        search: req.query.search,
+        maxPrice: req.query.maxPrice,
+        minPrice: req.query.minPrice
     };
-    const keys = Object.entries(filters)
-    const filterArray = keys.filter(el => el[1] !== undefined)
-    const whereClause = filterArray.map((element, index) => {
-        return ` ${element[0]} = $${index + 1}`
-    }).join(" AND ")
-    const values = filterArray.map(element => {
-        return element[1]
-    })
+    const values = [];
+    let index = 1;
+
+    const whereClause = Object.entries(filters)
+    .filter(([_, value]) => value !== undefined && value !== "")
+    .map(([key, value]) =>{
+
+        if(key === "search"){
+            values.push(`%${value}%`);
+
+            return `(title ILIKE $${index}
+                     OR author ILIKE $${index}
+                     OR description ILIKE $${index++})`
+        }
+
+        if(key === "maxPrice"){
+            values.push(value)
+
+            return `price <= $${index++}`
+        }
+        if(key === "minPrice"){
+            values.push(value)
+
+            return `price >= $${index++}`
+        }
+        values.push(value);
+        return `${key} = $${index++}`;
+    }).join(" AND ");
     const books = await bookModel.getBooksFilters(whereClause, values)
     if (books.length === 0) {
         return res.status(404).json({
@@ -32,23 +54,13 @@ router.get("/", asyncHandler(async (req, res) => {
             }
         })
     }
-    const fromatedData = books.map(row => { 
-        const formatDate = formateDate(row.created_at)
-        return {
-            id: row.id,
-            title: row.title,
-            author: row.author,
-            price: row.price,
-            stock: row.stock,
-            description: row.description,
-            categorie: row.categorie,
-            created_at: formatDate
-        }
-    })
+    const formatDate = books.map(fromatedBookData)
+
     return res.status(200).json({
         status: "success",
         data: {
-            books: fromatedData
+            number_of_books: formatDate.length,
+            books: formatDate
         }
     })
 }))

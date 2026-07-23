@@ -48,10 +48,23 @@ const formateUsersRows = (row) => {
         join_at: formateDate(row.created_at)
     }
 }
+const fromatedBookData = (row) =>{
+    return{
+        id: row.id,
+        title: row.title,
+        author: row.author,
+        price: row.price,
+        stock: row.stock,
+        description: row.description,
+        categorie: row.categorie,
+        created_at: formateDate(row.created_at)
+    }
+}
 
 module.exports = {
     formateBorrowRow,
     formateReqRow,
     formateReqsRow,
-    formateUsersRows
+    formateUsersRows,
+    fromatedBookData
 }
