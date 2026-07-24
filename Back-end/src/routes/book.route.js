@@ -2,112 +2,97 @@ const express = require("express");
 const router = express.Router();
 const { validationAddBook } = require("../middleware/book.middleware");
 const { verify, authorization } = require("../middleware/auth.middleware");
-const bookController = require("../controllers/book.controller");
-
-/**
- * @swagger
- * tags:
- *   name: Books
- *   description: Book catalog and inventory management endpoints
- */
+const { generalLimiter } = require("../middleware/reteLimiter.middleware");
+const {
+  books,
+  book,
+  addBook,
+  importFile,
+  updateBook,
+  deleteBook,
+} = require("../controllers/book.controller");
 
 /**
  * @swagger
  * /books:
  *   get:
- *     summary: Retrieve list of books with optional search, pagination, and category filters
+ *     summary: Retrieve book list
+ *     description: Returns a paginated list of books with optional search by title/author/ISBN and filtering by category.
  *     tags: [Books]
  *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - $ref: '#/components/parameters/SearchParam'
  *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search keyword for book title or author
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *         description: Category name or ID
- *       - in: query
- *         name: page
+ *         name: category_id
  *         schema:
  *           type: integer
- *           default: 1
- *         description: Page number for pagination
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of books per page
+ *         description: Filter books by Category ID
  *     responses:
  *       200:
- *         description: List of books retrieved successfully
+ *         description: Paginated book collection retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Book'
+ *                 pagination:
  *                   type: object
  *                   properties:
- *                     books:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Book'
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         total: { type: integer, example: 50 }
- *                         page: { type: integer, example: 1 }
- *                         limit: { type: integer, example: 10 }
+ *                     total:
+ *                       type: integer
+ *                       example: 45
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
+ *       400:
+ *         $ref: '#/components/responses/400BadRequest'
  */
-router.get("/", bookController);
+router.get("/", generalLimiter, books);
 
 /**
  * @swagger
  * /books/{id}:
  *   get:
- *     summary: Retrieve detailed information for a specific book by ID
+ *     summary: Get book details by ID
+ *     description: Fetches specific book details by book ID.
  *     tags: [Books]
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target book ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Book details retrieved successfully
+ *         description: Book details found.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     book:
- *                       $ref: '#/components/schemas/Book'
- *       400:
- *         description: Invalid book ID
+ *                   $ref: '#/components/schemas/Book'
  *       404:
- *         description: Book not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.get("/:id", bookController);
+router.get("/:id", generalLimiter, book);
 
 /**
  * @swagger
  * /books:
  *   post:
- *     summary: Create a new book entry in the library inventory (Admin only)
+ *     summary: Add a new book (Admin only)
+ *     description: Creates a new book entry in the library system.
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -119,37 +104,35 @@ router.get("/:id", bookController);
  *             $ref: '#/components/schemas/BookInput'
  *     responses:
  *       201:
- *         description: Book created successfully
+ *         description: Book created successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
+ *                   example: Book added successfully
  *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: Book added successfully
- *                     book:
- *                       $ref: '#/components/schemas/Book'
+ *                   $ref: '#/components/schemas/Book'
  *       400:
- *         description: Validation error or missing parameters
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden (Admin role required)
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.post("/", verify, authorization("admin"), validationAddBook, bookController);
+router.post("/", verify, generalLimiter, authorization("admin"), validationAddBook, addBook);
 
 /**
  * @swagger
  * /books/import-file:
  *   post:
- *     summary: Bulk import books using an uploaded Excel (.xlsx) file (Admin only)
+ *     summary: Bulk import books via CSV (Admin only)
+ *     description: Uploads a CSV file to bulk import multiple book records into the library catalog.
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
@@ -159,57 +142,49 @@ router.post("/", verify, authorization("admin"), validationAddBook, bookControll
  *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - file
+ *             required: [file]
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: Excel spreadsheet file containing book rows (.xlsx)
+ *                 description: CSV file containing book records
  *     responses:
  *       200:
- *         description: Excel spreadsheet processed and books imported
+ *         description: CSV processed and books imported successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: Books imported successfully
- *                     imported_count:
- *                       type: integer
- *                       example: 25
+ *                   example: Books imported successfully
+ *                 insertedCount:
+ *                   type: integer
+ *                   example: 25
  *       400:
- *         description: No file uploaded or invalid file format
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.post("/import-file", verify, authorization("admin"), bookController);
+router.post("/import-file", generalLimiter, verify, authorization("admin"), importFile);
 
 /**
  * @swagger
  * /books/{id}:
  *   patch:
- *     summary: Update book attributes by ID (Admin only)
+ *     summary: Update book details (Admin only)
+ *     description: Modifies existing book details such as title, author, category, or available copy count.
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target book ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     requestBody:
  *       required: true
  *       content:
@@ -218,45 +193,47 @@ router.post("/import-file", verify, authorization("admin"), bookController);
  *             $ref: '#/components/schemas/BookUpdateInput'
  *     responses:
  *       200:
- *         description: Book updated successfully
+ *         description: Book updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
- *         description: Invalid book ID or payload
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  *       404:
- *         description: Book not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.patch("/:id", verify, authorization("admin"), bookController);
+router.patch("/:id", verify, generalLimiter, authorization("admin"), updateBook);
 
 /**
  * @swagger
  * /books/{id}:
  *   delete:
- *     summary: Remove a book from the catalog by ID (Admin only)
+ *     summary: Delete a book (Admin only)
+ *     description: Removes a book record from the inventory catalog.
  *     tags: [Books]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target book ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Book deleted successfully
- *       400:
- *         description: Invalid book ID
+ *         description: Book deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  *       404:
- *         description: Book not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.delete("/:id", verify, authorization("admin"), bookController);
+router.delete("/:id", verify, generalLimiter, authorization("admin"), deleteBook);
 
 module.exports = router;

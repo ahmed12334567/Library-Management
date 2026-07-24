@@ -1,41 +1,36 @@
 const express = require("express");
 const router = express.Router();
-const dashboardControllers = require("../controllers/dashboard.controller");
+const { statistics } = require("../controllers/dashboard.controller");
 const { verify, authorization } = require("../middleware/auth.middleware");
-
-/**
- * @swagger
- * tags:
- *   name: Dashboard
- *   description: Administrative analytics and metric aggregations
- */
+const { generalLimiter } = require("../middleware/reteLimiter.middleware");
 
 /**
  * @swagger
  * /dashboard/statistics:
  *   get:
- *     summary: Retrieve system-wide statistical metrics (Admin only)
+ *     summary: Retrieve admin analytics dashboard statistics (Admin only)
+ *     description: Provides aggregate system metrics including total users, book inventory count, active borrows, pending requests, and overdue totals.
  *     tags: [Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Dashboard statistics retrieved successfully
+ *         description: System statistics retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
  *                   $ref: '#/components/schemas/DashboardStatistics'
  *       401:
- *         description: Unauthorized (Invalid or missing JWT token)
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden (Admin role required)
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/statistics", verify, authorization("admin"), dashboardControllers);
+router.get("/statistics", generalLimiter, verify, authorization("admin"), statistics);
 
 module.exports = router;

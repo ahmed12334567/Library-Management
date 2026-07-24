@@ -1,11 +1,9 @@
-const express = require("express");
-const router = express.Router();
 const borroweBookModel = require("../models/borrowedBook.model")
 const bookModel = require("../models/book.model")
 const { asyncHandler } = require("../middleware/error.middleware")
 const { formateBorrowRow, formateReqRow, formateReqsRow } = require("../Utility/fromatBorrowRow")
 
-router.post("/", asyncHandler(async (req, res) => {
+const createBorrowBookReq = ("/", asyncHandler(async (req, res) => {
     const { id } = req.user
     const bookId = req.body?.book_id
     const availableBookInStock = await bookModel.getBookById(bookId)
@@ -47,7 +45,7 @@ router.post("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.delete("/:id", asyncHandler(async (req, res) => {
+const deleteBorrowBookReq = ("/:id", asyncHandler(async (req, res) => {
     const { id } = req.user
     const reqId = parseInt(req.params.id)
     if (!Number.isFinite(reqId)) {
@@ -59,8 +57,8 @@ router.delete("/:id", asyncHandler(async (req, res) => {
         })
     }
     const newBorroweBookReq = {
-        userId: id,
-        reqId: reqId
+        reqId: reqId,
+        userId: id
     }
     const checkUserHaveReq = await borroweBookModel.checkUserHaveReq(newBorroweBookReq)
     if (!checkUserHaveReq) {
@@ -87,7 +85,7 @@ router.delete("/:id", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/get-requsets", asyncHandler(async (req, res) => {
+const getBorrowBookReq = ("/get-requsets", asyncHandler(async (req, res) => {
     const requests = await borroweBookModel.getAllBorrowBookReq()
     if (requests.length === 0) {
         return res.status(200).json({
@@ -106,7 +104,7 @@ router.get("/get-requsets", asyncHandler(async (req, res) => {
     })
 }))
 
-router.patch("/:id/Approved", asyncHandler(async (req, res) => {
+const approveReq = ("/:id/Approved", asyncHandler(async (req, res) => {
     const reqId = parseInt(req.params.id)
     if (!Number.isFinite(reqId)) {
         return res.status(400).json({
@@ -158,7 +156,7 @@ router.patch("/:id/Approved", asyncHandler(async (req, res) => {
     })
 }))
 
-router.patch("/:id/Reject", asyncHandler(async (req, res) => {
+const rejectReq = ("/:id/Reject", asyncHandler(async (req, res) => {
     const reqId = parseInt(req.params.id)
     if (!Number.isFinite(reqId)) {
         return res.status(400).json({
@@ -200,7 +198,7 @@ router.patch("/:id/Reject", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/borrowed", asyncHandler(async (req, res) => {
+const getBorrowBook = ("/borrowed", asyncHandler(async (req, res) => {
     const borrowBook = await borroweBookModel.getBorrowBookDetails()
     const formattedBorrowed = borrowBook.map(formateBorrowRow)
     return res.status(200).json({
@@ -211,7 +209,7 @@ router.get("/borrowed", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/my-borrowed-books", asyncHandler(async (req, res) => {
+const getAllBorrowBookUser = ("/my-borrowed-books", asyncHandler(async (req, res) => {
     const { id } = req.user
     const borrowedBooks = await borroweBookModel.getBorrowBookByUserId(id)
     if (borrowedBooks.length === 0) {
@@ -232,7 +230,7 @@ router.get("/my-borrowed-books", asyncHandler(async (req, res) => {
     })
 }))
 
-router.post("/return-book/:id", asyncHandler(async (req, res) => {
+const returnBook = ("/return-book/:id", asyncHandler(async (req, res) => {
     const borrowId = parseInt(req.params.id);
 
     if (!Number.isFinite(borrowId)) {
@@ -287,7 +285,7 @@ router.post("/return-book/:id", asyncHandler(async (req, res) => {
     });
 }));
 
-router.get("/over-date", asyncHandler(async (req, res) => {
+const overDate = ("/over-date", asyncHandler(async (req, res) => {
     const overDateBorrow = await borroweBookModel.overDateBorrow()
     if (overDateBorrow.length === 0) {
         return res.status(200).json({
@@ -307,7 +305,7 @@ router.get("/over-date", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/borrow-requests/me", asyncHandler(async (req, res) => {
+const borrowBooksReqUser = ("/borrow-requests/me", asyncHandler(async (req, res) => {
     const { id } = req.user
 
     const userReqs = await borroweBookModel.getAllReqsByUserId(id)
@@ -328,4 +326,15 @@ router.get("/borrow-requests/me", asyncHandler(async (req, res) => {
     })
 }))
 
-module.exports = router
+module.exports = {
+    createBorrowBookReq,
+    deleteBorrowBookReq,
+    getBorrowBookReq,
+    approveReq,
+    rejectReq,
+    getBorrowBook,
+    getAllBorrowBookUser,
+    returnBook,
+    overDate,
+    borrowBooksReqUser
+}

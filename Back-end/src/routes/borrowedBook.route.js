@@ -1,21 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const createBorrowBookMiddleware = require("../middleware/borrowedBook.middleware");
-const borrowBookController = require("../controllers/borrowedBook.controller");
 const { verify, authorization } = require("../middleware/auth.middleware");
-
-/**
- * @swagger
- * tags:
- *   name: Borrow
- *   description: Book borrowing workflows, active loans, overdue tracking, and request approval management
- */
+const { generalLimiter } = require("../middleware/reteLimiter.middleware");
+const {
+  createBorrowBookReq,
+  getAllBorrowBookUser,
+  borrowBooksReqUser,
+  getBorrowBookReq,
+  overDate,
+  returnBook,
+  getBorrowBook,
+  approveReq,
+  rejectReq,
+  deleteBorrowBookReq,
+} = require("../controllers/borrowedBook.controller");
 
 /**
  * @swagger
  * /borrow:
  *   post:
- *     summary: Submit a request to borrow a book (User only)
+ *     summary: Request to borrow a book (User)
+ *     description: Creates a new pending borrow request for the authenticated user.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
@@ -27,295 +33,349 @@ const { verify, authorization } = require("../middleware/auth.middleware");
  *             $ref: '#/components/schemas/BorrowInput'
  *     responses:
  *       201:
- *         description: Borrow request created and set to Pending
+ *         description: Borrow request created successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
+ *                   example: Borrow request submitted successfully
  *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: Borrow book request created successfully
- *                     borrowBookReq:
- *                       $ref: '#/components/schemas/BorrowRequest'
+ *                   $ref: '#/components/schemas/BorrowRequest'
  *       400:
- *         description: Invalid book ID or book unavailable
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden (User only)
+ *         $ref: '#/components/responses/401Unauthorized'
  *       409:
- *         description: User already has pending request or actively borrowed this book
+ *         $ref: '#/components/responses/409Conflict'
  */
-router.post("/", verify, authorization("user"), createBorrowBookMiddleware, borrowBookController);
+router.post(
+  "/",
+  generalLimiter,
+  verify,
+  authorization("user"),
+  createBorrowBookMiddleware,
+  createBorrowBookReq
+);
 
 /**
  * @swagger
  * /borrow/my-borrowed-books:
  *   get:
- *     summary: Get currently active borrowed books for the logged-in user (User only)
+ *     summary: Get my active borrowed books (User)
+ *     description: Returns a list of all currently active borrowed books for the logged-in user.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Active borrowed books list
+ *         description: Active borrowed books retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     borrowedBooks:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id: { type: integer, example: 1 }
- *                           bookid: { type: integer, example: 5 }
- *                           title: { type: string, example: "Clean Code" }
- *                           description: { type: string, example: "Software Craftsmanship" }
- *                           borrowed_at: { type: string, format: "date-time" }
- *                           due_date: { type: string, format: "date-time" }
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BorrowRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  */
-router.get("/my-borrowed-books", verify, authorization("user"), borrowBookController);
+router.get(
+  "/my-borrowed-books",
+  generalLimiter,
+  verify,
+  authorization("user"),
+  getAllBorrowBookUser
+);
 
 /**
  * @swagger
  * /borrow/borrow-requests/me:
  *   get:
- *     summary: Get all borrow requests (Pending, Approved, Rejected) submitted by logged-in user (User only)
+ *     summary: Get my borrow requests history (User)
+ *     description: Returns all borrow request entries (pending, approved, rejected, returned) for the logged-in user.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Borrow requests list
+ *         description: Borrow requests history retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     requests:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/BorrowRequest'
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BorrowRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  */
-router.get("/borrow-requests/me", verify, authorization("user"), borrowBookController);
+router.get(
+  "/borrow-requests/me",
+  generalLimiter,
+  verify,
+  authorization("user"),
+  borrowBooksReqUser
+);
 
 /**
  * @swagger
  * /borrow/get-requsets:
  *   get:
- *     summary: Retrieve all pending borrow requests across all users (Admin only)
+ *     summary: List all pending borrow requests (Admin only)
+ *     description: Returns all pending borrow requests awaiting administrator approval or rejection.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Pending borrow requests list
+ *         description: Pending borrow requests retrieved.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     requests:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/BorrowRequest'
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BorrowRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden (Admin only)
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/get-requsets", verify, authorization("admin"), borrowBookController);
+router.get(
+  "/get-requsets",
+  generalLimiter,
+  verify,
+  authorization("admin"),
+  getBorrowBookReq
+);
 
 /**
  * @swagger
  * /borrow/over-date:
  *   get:
- *     summary: List all overdue borrowed books past due date (Admin only)
+ *     summary: List overdue borrowed books (Admin only)
+ *     description: Retrieves all active borrow records where the return date has passed.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Overdue borrow records
+ *         description: Overdue book records retrieved.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     overdue:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/OverdueBorrowRecord'
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/OverdueBorrowRecord'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/over-date", verify, authorization("admin"), borrowBookController);
+router.get(
+  "/over-date",
+  generalLimiter,
+  verify,
+  authorization("admin"),
+  overDate
+);
 
 /**
  * @swagger
  * /borrow/return-book/{id}:
  *   post:
- *     summary: Return a borrowed book by loan record ID (User only)
+ *     summary: Return a borrowed book (User)
+ *     description: Marks a currently borrowed book as returned and restores available copy count.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Borrow record ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Book returned successfully, copy restored to library
+ *         description: Book returned successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
- *         description: Invalid borrow ID or book already returned
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.post("/return-book/:id", verify, authorization("user"), borrowBookController);
+router.post(
+  "/return-book/:id",
+  generalLimiter,
+  verify,
+  authorization("user"),
+  returnBook
+);
 
 /**
  * @swagger
  * /borrow/borrowed:
  *   get:
- *     summary: Get all active borrowed books system-wide (Admin only)
+ *     summary: List all active borrowed books in system (Admin only)
+ *     description: Returns all currently active borrowed books across all users.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of all active borrowed books
+ *         description: All active borrowed books retrieved.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/BorrowRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/borrowed", verify, authorization("admin"), borrowBookController);
+router.get(
+  "/borrowed",
+  generalLimiter,
+  verify,
+  authorization("admin"),
+  getBorrowBook
+);
 
 /**
  * @swagger
  * /borrow/{id}/Approved:
  *   patch:
- *     summary: Approve a pending borrow request by request ID (Admin only)
+ *     summary: Approve a borrow request (Admin only)
+ *     description: Approves a pending borrow request, decrementing book available copies and setting return date.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Borrow request ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Borrow request approved and loan record initialized
+ *         description: Borrow request approved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
- *         description: Invalid request ID or request not in Pending state
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  *       404:
- *         description: Request not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.patch("/:id/Approved", verify, authorization("admin"), borrowBookController);
+router.patch(
+  "/:id/Approved",
+  generalLimiter,
+  verify,
+  authorization("admin"),
+  approveReq
+);
 
 /**
  * @swagger
  * /borrow/{id}/Reject:
  *   patch:
- *     summary: Reject a pending borrow request by request ID (Admin only)
+ *     summary: Reject a borrow request (Admin only)
+ *     description: Rejects a pending borrow request with status `Reject`.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Borrow request ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Borrow request rejected
+ *         description: Borrow request rejected.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
- *         description: Invalid request ID
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  *       404:
- *         description: Request not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.patch("/:id/Reject", verify, authorization("admin"), borrowBookController);
+router.patch(
+  "/:id/Reject",
+  generalLimiter,
+  verify,
+  authorization("admin"),
+  rejectReq
+);
 
 /**
  * @swagger
  * /borrow/{id}:
  *   delete:
- *     summary: Cancel/delete a pending borrow request by request ID (User only)
+ *     summary: Cancel a pending borrow request (User)
+ *     description: Allows a user to cancel their pending borrow request before admin approval.
  *     tags: [Borrow]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Borrow request ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Request cancelled/deleted successfully
- *       400:
- *         description: Invalid request ID or request not owned by user
+ *         description: Borrow request cancelled successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       404:
- *         description: Request not found
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.delete("/:id", verify, authorization("user"), borrowBookController);
+router.delete(
+  "/:id",
+  generalLimiter,
+  verify,
+  authorization("user"),
+  deleteBorrowBookReq
+);
 
 module.exports = router;

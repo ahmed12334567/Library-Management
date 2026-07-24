@@ -74,7 +74,7 @@ const book = {
         const offsetIndex = values.length + 1;
         values.push(offset);
         query += ` LIMIT $${limitIndex} OFFSET $${offsetIndex}`
-
+        
         const result = await pool.query(query, values);
         return result.rows;
     },
@@ -92,7 +92,7 @@ const book = {
         const query = `SELECT title, author, price, stock, description, created_at FROM books WHERE id = $1`
         const value = [id]
         const result = await pool.query(query, value)
-        return result.rows[0]
+        return result.rows
     },
     getBookByCategorie: async (categorie_id) => {
         const query = `SELECT title, author, price, stock, description FROM books WHERE categorie_id = $1`

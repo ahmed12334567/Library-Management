@@ -1,9 +1,7 @@
-const express = require("express")
-const router = express.Router()
 const { asyncHandler } = require("../middleware/error.middleware")
 const categorieModel = require("../models/categorie.model")
 
-router.get("/", asyncHandler(async (req, res) => {
+const categories = ("/", asyncHandler(async (req, res) => {
     const categories = await categorieModel.getcategories()
 
     return res.status(200).json({
@@ -14,7 +12,7 @@ router.get("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.post("/", asyncHandler(async (req, res) => {
+const addCategorie = ("/", asyncHandler(async (req, res) => {
     const name = req.body?.name?.trim()
     if (!name || typeof name !== "string") {
         return res.status(400).json({
@@ -51,7 +49,7 @@ router.post("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.delete("/:id", asyncHandler(async (req, res) => {
+const deleteCategorie = ("/:id", asyncHandler(async (req, res) => {
     const categorieId = parseInt(req.params.id);
 
     if (!Number.isFinite(categorieId)) {
@@ -88,4 +86,4 @@ router.delete("/:id", asyncHandler(async (req, res) => {
 
 }))
 
-module.exports = router
+module.exports = { categories, addCategorie, deleteCategorie }

@@ -1,36 +1,45 @@
-const express = require("express")
-const router = express.Router()
 const userModel = require("../models/auth.model")
 const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
 require("dotenv").config()
-const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client();
 const JWT_SECRET = process.env.JWT_SECRET
 const { asyncHandler } = require("../middleware/error.middleware")
 const { formateUsersRows } = require("../Utility/fromatBorrowRow")
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-asyncHandler(async function verifyGoogleToken(accessToken) {
-    client.setCredentials({ access_token: accessToken });
+async function verifyGoogleToken(idToken) {
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: idToken,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
 
-    const userInfo = await client.request({
-        url: 'https://www.googleapis.com/oauth2/v3/userinfo'
-    });
+        const payload = ticket.getPayload();
 
-    const payload = userInfo.data;
-
-    return {
-        success: true,
-        payload: {
-            email: payload.email,
-            name: payload.name,
-            sub: payload.sub
+        if (!payload.email_verified) {
+            return {
+                status: "fail",
+                data: {
+                    error: "Google email not verified"
+                }
+            }
         }
-    };
 
-})
+        return {
+            status: "success",
+            payload: {
+                email: payload.email,
+                name: payload.name,
+                sub: payload.sub
+            }
+        };
+    } catch (err) {
+        return { status: "fail", error: err.message };
+    }
+}
 
-router.post("/register", asyncHandler(async (req, res) => {
+const register = ("/register", asyncHandler(async (req, res) => {
     const username = req.body?.username?.trim()
     const email = req.body?.email?.trim()
     const password = req.body?.password
@@ -84,7 +93,7 @@ router.post("/register", asyncHandler(async (req, res) => {
     })
 }))
 
-router.post("/login", asyncHandler(async (req, res) => {
+const login = ("/login", asyncHandler(async (req, res) => {
     const email = req.body?.email?.trim()
     const password = req.body?.password?.trim()
 
@@ -124,7 +133,7 @@ router.post("/login", asyncHandler(async (req, res) => {
 }
 ))
 
-router.get("/me", asyncHandler(async (req, res) => {
+const me = ("/me", asyncHandler(async (req, res) => {
     const { email } = req.user
 
     const existingUser = await userModel.findUserByEmail(email)
@@ -149,7 +158,7 @@ router.get("/me", asyncHandler(async (req, res) => {
 // TODO:
 // - Store Google sub in database.
 // - Verify email_verified from Google.
-router.post("/google", asyncHandler(async (req, res) => {
+const google = ("/google", asyncHandler(async (req, res) => {
     const googleIdToken = req.body.googleIdToken;
 
     if (!googleIdToken) {
@@ -230,7 +239,7 @@ router.post("/google", asyncHandler(async (req, res) => {
 }
 ));
 
-router.get("/users", asyncHandler(async (req, res) => {
+const allUsers = ("/users", asyncHandler(async (req, res) => {
     const users = await userModel.getUsers()
     const fromatUsers = users.map(formateUsersRows)
 
@@ -243,7 +252,7 @@ router.get("/users", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/users/:id", asyncHandler(async (req, res) => {
+const user = ("/users/:id", asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id)
     if (!Number.isFinite(userId)) {
         return res.status(400).json({
@@ -272,7 +281,7 @@ router.get("/users/:id", asyncHandler(async (req, res) => {
     })
 }))
 
-router.patch("/users/:id/role", asyncHandler(async (req, res) => {
+const changeRole = ("/users/:id/role", asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id)
     const role = req.body?.role?.trim()
     if (!Number.isFinite(userId)) {
@@ -306,13 +315,13 @@ router.patch("/users/:id/role", asyncHandler(async (req, res) => {
     }
     return res.status(201).json({
         status: "success",
-        data:{
+        data: {
             message: "user updated successfuly"
         }
     })
 }))
 
-router.delete("/users/:id", asyncHandler(async (req, res) => {
+const deleteUser = ("/users/:id", asyncHandler(async (req, res) => {
     const userId = parseInt(req.params.id)
     if (!Number.isFinite(userId)) {
         return res.status(400).json({
@@ -338,4 +347,4 @@ router.delete("/users/:id", asyncHandler(async (req, res) => {
     })
 }))
 
-module.exports = router
+module.exports = { register, login, google, me, allUsers, user, changeRole, deleteUser }

@@ -8,7 +8,7 @@ const optionsEn = {
 }
 
 function formatDate(date) {
-    const dateObj = new Date(date);
+    const dateObj = new Date(date); 
 
     return !isNaN(dateObj.getTime())
         ? dateObj.toLocaleString("en-US", optionsEn)

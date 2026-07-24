@@ -1,5 +1,3 @@
-const express = require("express");
-const router = express.Router();
 const bookModel = require("../models/book.model");
 const { fileFilter, bookValidationRules } = require("../middleware/book.middleware");
 const multer = require("multer");
@@ -9,7 +7,7 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 const { asyncHandler } = require("../middleware/error.middleware")
 const { fromatedBookData } = require("../Utility/fromatBorrowRow")
 
-router.get("/", asyncHandler(async (req, res) => {
+const books = ("/", asyncHandler(async (req, res) => {
     const filters = {
         categorie_id: req.query.categoryId,
         author: req.query.author,
@@ -18,12 +16,20 @@ router.get("/", asyncHandler(async (req, res) => {
         minPrice: req.query.minPrice
     };
 
-    const pages = Number(req.query.pages) || 1;
+    const pages = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
+    if (!Number.isFinite(pages) || !Number.isFinite(limit)) {
+        return res.status(400).json({
+            status: "fail",
+            data: {
+                message: "Invalid page number or limit number"
+            }
+        })
+    }
     const offset = (pages - 1) * limit
 
     const sort = req.query.sort || "created_at";
-    const order = (req.query.order || "DESC").toUpperCase();
+    const order = (req.query.order || "ASC").toUpperCase();
 
     const allowedSort = {
         price: "price",
@@ -116,7 +122,7 @@ router.get("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.get("/:id", asyncHandler(async (req, res) => {
+const book = ("/:id", asyncHandler(async (req, res) => {
     const bookId = parseInt(req.params.id)
     if (!Number.isFinite(bookId)) {
         return res.status(400).json({
@@ -135,8 +141,7 @@ router.get("/:id", asyncHandler(async (req, res) => {
             }
         })
     }
-    const created_at = book.created_at
-    const formateDateBook = formateDate(created_at)
+    const formateDateBook = book.map(fromatedBookData)
     return res.status(200).json({
         status: "success",
         data: {
@@ -152,7 +157,7 @@ router.get("/:id", asyncHandler(async (req, res) => {
 
 
 
-router.post("/", asyncHandler(async (req, res) => {
+const addBook = ("/", asyncHandler(async (req, res) => {
     const title = req.body?.title?.trim()
     const author = req.body?.author?.trim()
     const isbn = req.body?.isbn
@@ -187,7 +192,7 @@ router.post("/", asyncHandler(async (req, res) => {
     })
 }))
 
-router.post("/import-file", upload.single("bookFile"), asyncHandler(async (req, res) => {
+const importFile = ("/import-file", upload.single("bookFile"), asyncHandler(async (req, res) => {
     if (req.fileValidationError) {
         return res.status(400).json({
             status: "fail",
@@ -316,7 +321,7 @@ router.post("/import-file", upload.single("bookFile"), asyncHandler(async (req, 
 }
 ))
 
-router.patch("/:id", asyncHandler(async (req, res) => {
+const updateBook = ("/:id", asyncHandler(async (req, res) => {
     const bookId = parseInt(req.params.id)
     if (!Number.isFinite(bookId)) {
         return res.status(400).json({
@@ -391,7 +396,7 @@ router.patch("/:id", asyncHandler(async (req, res) => {
 }
 ))
 
-router.delete("/:id", asyncHandler(async (req, res) => {
+const deleteBook = ("/:id", asyncHandler(async (req, res) => {
     const bookId = parseInt(req.params.id)
     if (!Number.isFinite(bookId)) {
         return res.status(400).json({
@@ -419,4 +424,4 @@ router.delete("/:id", asyncHandler(async (req, res) => {
 }
 ))
 
-module.exports = router
+module.exports = { books, book, addBook, importFile, updateBook, deleteBook }

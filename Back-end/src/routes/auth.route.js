@@ -1,20 +1,24 @@
 const express = require("express");
 const router = express.Router();
 const { validtionReg, validtionLogin, verify, authorization } = require("../middleware/auth.middleware");
-const authController = require("../controllers/auth.controller");
-
-/**
- * @swagger
- * tags:
- *   name: Auth
- *   description: User authentication, registration, Google OAuth, and user management endpoints
- */
+const { generalLimiter, authLimiter } = require("../middleware/reteLimiter.middleware");
+const {
+  register,
+  login,
+  google,
+  me,
+  allUsers,
+  user,
+  changeRole,
+  deleteUser,
+} = require("../controllers/auth.controller");
 
 /**
  * @swagger
  * /auth/register:
  *   post:
  *     summary: Register a new user
+ *     description: Creates a new user account with default role `user`. Returns the created user object.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -24,46 +28,35 @@ const authController = require("../controllers/auth.controller");
  *             $ref: '#/components/schemas/RegisterInput'
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
+ *                   example: User registered successfully
  *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: Account created successfuly
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *                     token:
- *                       type: string
- *                       example: eyJhbGciOiJIUzI1NiIsIn...
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Validation error or invalid payload
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponseError'
+ *         $ref: '#/components/responses/400BadRequest'
  *       409:
- *         description: Email already exists
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponseError'
+ *         $ref: '#/components/responses/409Conflict'
+ *       429:
+ *         $ref: '#/components/responses/429TooManyRequests'
  */
-router.post("/register", validtionReg, authController);
+router.post("/register", authLimiter, validtionReg, register);
 
 /**
  * @swagger
  * /auth/login:
  *   post:
- *     summary: Login user with credentials
+ *     summary: Authenticate user & get JWT token
+ *     description: Validates credentials and returns a JWT access token along with user details.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -73,40 +66,38 @@ router.post("/register", validtionReg, authController);
  *             $ref: '#/components/schemas/LoginInput'
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
+ *         description: Login successful. Returns JWT bearer token.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: login successfuly
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *                     token:
- *                       type: string
- *                       example: eyJhbGciOiJIUzI1NiIsIn...
+ *                   example: Login successful
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Invalid credentials or user not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponseError'
+ *         $ref: '#/components/responses/400BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/401Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/429TooManyRequests'
  */
-router.post("/login", validtionLogin, authController);
+router.post("/login", authLimiter, validtionLogin, login);
 
 /**
  * @swagger
  * /auth/google:
  *   post:
- *     summary: Authenticate or register using Google OAuth token
+ *     summary: OAuth 2.0 Google Sign-In
+ *     description: Authenticates or registers a user via Google OAuth idToken.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -116,133 +107,132 @@ router.post("/login", validtionLogin, authController);
  *             $ref: '#/components/schemas/GoogleLoginInput'
  *     responses:
  *       200:
- *         description: Existing user login successful via Google
+ *         description: Google authentication successful.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ApiResponseSuccess'
- *       201:
- *         description: New user created and authenticated via Google
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponseSuccess'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 token:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Missing Google token
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Invalid Google token
+ *         $ref: '#/components/responses/401Unauthorized'
  */
-router.post("/google", authController);
+router.post("/google", authLimiter, google);
 
 /**
  * @swagger
  * /auth/me:
  *   get:
  *     summary: Get current authenticated user profile
+ *     description: Returns the user profile details for the currently logged-in user.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: User profile retrieved successfully
+ *         description: Current user profile fetched successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
+ *                   $ref: '#/components/schemas/User'
  *       401:
- *         description: Unauthorized (Invalid or missing JWT token)
- *       404:
- *         description: User profile not found
+ *         $ref: '#/components/responses/401Unauthorized'
  */
-router.get("/me", verify, authorization("user"), authController);
+router.get("/me", verify, authLimiter, authorization("user"), me);
 
 /**
  * @swagger
  * /auth/users:
  *   get:
- *     summary: Get list of all registered users (Admin only)
+ *     summary: List all registered users (Admin only)
+ *     description: Retrieves a list of all registered users with optional search and pagination.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - $ref: '#/components/parameters/SearchParam'
  *     responses:
  *       200:
- *         description: List of users retrieved successfully
+ *         description: User list retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     number_of_users:
- *                       type: integer
- *                       example: 5
- *                     users:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/User'
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden (Requires admin role)
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/users", verify, authorization("admin"), authController);
+router.get("/users", verify, generalLimiter, authorization("admin"), allUsers);
 
 /**
  * @swagger
  * /auth/users/{id}:
  *   get:
- *     summary: Get single user details by ID (Admin only)
+ *     summary: Get user details by ID (Admin only)
+ *     description: Retrieves specific user information by user ID.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target user ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: User details retrieved
- *       400:
- *         description: Invalid user ID or user not found
+ *         description: User profile found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.get("/users/:id", verify, authorization("admin"), authController);
+router.get("/users/:id", verify, generalLimiter, authorization("admin"), user);
 
 /**
  * @swagger
  * /auth/users/{id}/role:
  *   patch:
- *     summary: Update user authorization role (Admin only)
+ *     summary: Change user role (Admin only)
+ *     description: Promotes or demotes a user's role (`user` or `admin`).
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target user ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     requestBody:
  *       required: true
  *       content:
@@ -250,42 +240,48 @@ router.get("/users/:id", verify, authorization("admin"), authController);
  *           schema:
  *             $ref: '#/components/schemas/UserRoleInput'
  *     responses:
- *       201:
- *         description: User role updated successfully
+ *       200:
+ *         description: User role updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       400:
- *         description: Invalid input or user not found
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.patch("/users/:id/role", verify, authorization("admin"), authController);
+router.patch("/users/:id/role", verify, generalLimiter, authorization("admin"), changeRole);
 
 /**
  * @swagger
  * /auth/users/{id}:
  *   delete:
- *     summary: Delete user account by ID (Admin only)
+ *     summary: Delete a user account (Admin only)
+ *     description: Permanently removes a user account from the system.
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target user ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: User account deleted successfully
- *       400:
- *         description: Invalid user ID or user not found
+ *         description: User account deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.delete("/users/:id", verify, authorization("admin"), authController);
+router.delete("/users/:id", verify, generalLimiter, authorization("admin"), deleteUser);
 
 module.exports = router;

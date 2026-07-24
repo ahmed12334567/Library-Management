@@ -1,53 +1,50 @@
 const express = require("express");
 const router = express.Router();
-const categorieController = require("../controllers/categories.controller");
 const { verify, authorization } = require("../middleware/auth.middleware");
-
-/**
- * @swagger
- * tags:
- *   name: Categories
- *   description: Book classification categories management
- */
+const { generalLimiter } = require("../middleware/reteLimiter.middleware");
+const {
+  categories,
+  addCategorie,
+  deleteCategorie,
+} = require("../controllers/categories.controller");
 
 /**
  * @swagger
  * /categories:
  *   get:
- *     summary: Retrieve list of all book categories (Admin only)
+ *     summary: List all book categories (Admin only)
+ *     description: Retrieves a list of all existing book categories.
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of categories retrieved successfully
+ *         description: Category list retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
- *                   type: string
- *                   example: success
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     categories:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Category'
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden (Admin only)
+ *         $ref: '#/components/responses/403Forbidden'
  */
-router.get("/", verify, authorization("admin"), categorieController);
+router.get("/", generalLimiter, verify, authorization("admin"), categories);
 
 /**
  * @swagger
  * /categories:
  *   post:
- *     summary: Add a new category (Admin only)
+ *     summary: Add a new book category (Admin only)
+ *     description: Creates a new category classification for organizing books.
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
@@ -58,62 +55,57 @@ router.get("/", verify, authorization("admin"), categorieController);
  *           schema:
  *             $ref: '#/components/schemas/CategoryInput'
  *     responses:
- *       200:
- *         description: Category created successfully
+ *       201:
+ *         description: Category created successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 status:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
  *                   type: string
- *                   example: success
+ *                   example: Category added successfully
  *                 data:
- *                   type: object
- *                   properties:
- *                     message:
- *                       type: string
- *                       example: categorie added successfuly
- *                     categorie:
- *                       $ref: '#/components/schemas/Category'
+ *                   $ref: '#/components/schemas/Category'
  *       400:
- *         description: Missing or invalid category name
+ *         $ref: '#/components/responses/400BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
+ *         $ref: '#/components/responses/403Forbidden'
  *       409:
- *         description: Category already exists
+ *         $ref: '#/components/responses/409Conflict'
  */
-router.post("/", verify, authorization("admin"), categorieController);
+router.post("/", generalLimiter, verify, authorization("admin"), addCategorie);
 
 /**
  * @swagger
  * /categories/{id}:
  *   delete:
- *     summary: Remove a category by ID (Admin only)
+ *     summary: Delete a category by ID (Admin only)
+ *     description: Permanently removes a book category by its ID.
  *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Target category ID
+ *       - $ref: '#/components/parameters/IdPathParam'
  *     responses:
  *       200:
- *         description: Category deleted successfully
- *       400:
- *         description: Invalid category ID
+ *         description: Category deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponseSuccess'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/401Unauthorized'
  *       403:
- *         description: Forbidden
- *       409:
- *         description: Category does not exist
+ *         $ref: '#/components/responses/403Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/404NotFound'
  */
-router.delete("/:id", verify, authorization("admin"), categorieController);
+router.delete("/:id", generalLimiter, verify, authorization("admin"), deleteCategorie);
 
 module.exports = router;
